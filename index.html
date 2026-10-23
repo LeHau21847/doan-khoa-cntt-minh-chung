@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đoàn Khoa CNTT - Tiếp Nhận Minh Chứng Tham Gia Nhóm Zalo & App Thanh Niên Việt Nam</title>
+  <meta name="description" content="Trang web công khai triển khai thông tin và tiếp nhận minh chứng tham gia nhóm Zalo Bí thư, cài đặt và sử dụng App Thanh niên Việt Nam theo Công văn 73-CV/ĐTN - Đoàn Khoa Công nghệ Thông tin, Trường Đại học Lạc Hồng.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar" id="navbar">
+    <div class="container nav-content">
+      <a href="#hero" class="brand" id="brand-link">
+        <div class="brand-badge">IT</div>
+        <div class="brand-text">
+          <h1>ĐOÀN KHOA CÔNG NGHỆ THÔNG TIN</h1>
+          <p>Trường Đại học Lạc Hồng</p>
+        </div>
+      </a>
+      
+      <ul class="nav-links">
+        <li><a href="#info-hub">📌 Hướng dẫn & QR</a></li>
+        <li><a href="#submit-section">📤 Nộp minh chứng</a></li>
+        <li><a href="#classes-section">👥 56 Lớp & Cán sự</a></li>
+        <li><a href="#dashboard-section">📊 Bảng tiến độ</a></li>
+      </ul>
+      
+      <div class="nav-actions">
+        <button class="btn btn-outline btn-sm" id="btn-open-google-modal" title="Cấu hình Google Drive & Sheets">
+          ⚙️ Kết nối Google Drive
+        </button>
+        <a href="https://zalo.me/g/9scl8scbk5rsi3dk83gk" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" id="btn-nav-zalo">
+          📲 Vào nhóm Zalo
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero-section" id="hero">
+    <div class="container">
+      <div class="official-badge" id="official-badge">
+        📜 CÔNG VĂN SỐ 73-CV/ĐTN • BTV ĐOÀN TRƯỜNG ĐH LẠC HỒNG
+      </div>
+      
+      <h1 class="hero-title" id="main-heading">
+        HỆ THỐNG TRIỂN KHAI & TIẾP NHẬN <span>MINH CHỨNG</span>
+      </h1>
+      <p class="hero-desc" id="hero-subtext">
+        Triển khai tham gia nhóm Zalo Bí thư Chi đoàn & Hướng dẫn cài đặt, xác thực, học tập Nghị quyết trên ứng dụng <strong>Thanh niên Việt Nam</strong> cho đoàn viên, thanh niên Khoa Công nghệ Thông tin.
+      </p>
+
+      <!-- Countdown Bar -->
+      <div class="countdown-box" id="countdown-container">
+        <div class="countdown-label">
+          <span class="icon">⏳</span>
+          <div>
+            <strong>HẠN CHÓT HOÀN THÀNH:</strong>
+            <p style="font-size: 0.8rem; opacity: 0.9;">16h00 ngày 25/10/2026 (Theo CV số 73)</p>
+          </div>
+        </div>
+        <div class="timer-digits">
+          <div class="timer-unit">
+            <span class="timer-num" id="timer-days">00</span>
+            <span class="timer-txt">Ngày</span>
+          </div>
+          <div class="timer-unit">
+            <span class="timer-num" id="timer-hours">00</span>
+            <span class="timer-txt">Giờ</span>
+          </div>
+          <div class="timer-unit">
+            <span class="timer-num" id="timer-mins">00</span>
+            <span class="timer-txt">Phút</span>
+          </div>
+          <div class="timer-unit">
+            <span class="timer-num" id="timer-secs">00</span>
+            <span class="timer-txt">Giây</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon stat-blue">🏛️</div>
+          <div class="stat-info">
+            <h3 id="stat-total-classes">56</h3>
+            <p>Tổng số lớp Khoa CNTT</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-green">👥</div>
+          <div class="stat-info">
+            <h3 id="stat-total-students">1.372</h3>
+            <p>Quy mô sinh viên (K23 - K26)</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-orange">🎖️</div>
+          <div class="stat-info">
+            <h3 id="stat-total-bithu">25</h3>
+            <p>Lớp đã có Bí thư Chi đoàn</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-red">✅</div>
+          <div class="stat-info">
+            <h3 id="stat-submitted-count">0</h3>
+            <p>Lớp đã nộp minh chứng</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section 1: Hướng dẫn & QR Code -->
+  <section class="section" id="info-hub">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            📌 THÔNG TIN TRIỂN KHAI & HƯỚNG DẪN <span class="tag">Nhiệm vụ trọng tâm</span>
+          </h2>
+          <p class="section-subtitle">Bí thư chi đoàn và cán sự các lớp thực hiện nghiêm túc 2 nội dung dưới đây</p>
+        </div>
+      </div>
+
+      <div class="info-hub-grid">
+        <!-- Card 1: Nhóm Zalo Bí thư Chi đoàn -->
+        <div class="info-card" id="zalo-info-card">
+          <span class="card-badge badge-blue">Nội dung 1 • Kết nối Zalo</span>
+          <h3>1. Tham gia Nhóm Zalo Bí thư Chi đoàn Khoa</h3>
+          <p class="intro">
+            Nhóm Zalo chính thức do Đoàn Khoa CNTT quản lý để chỉ đạo công tác Đoàn - Hội, tiếp nhận thông báo và điều phối hoạt động phong trào.
+          </p>
+
+          <div class="qr-container">
+            <div class="qr-image-wrapper" id="qr-preview-wrapper" title="Bấm để phóng to mã QR">
+              <img src="assets/QR_tham_gia_nhom.jpg" alt="Mã QR tham gia nhóm Zalo Bí thư Chi đoàn Khoa CNTT" id="img-qr-zalo">
+              <div class="qr-overlay">🔍 Phóng to</div>
+            </div>
+            <div class="qr-instructions">
+              <h4>Hướng dẫn thực hiện:</h4>
+              <ol>
+                <li>Mở ứng dụng Zalo trên điện thoại, quét mã QR bên cạnh.</li>
+                <li>Hoặc bấm nút <strong>"Tham gia Zalo ngay"</strong> phía dưới.</li>
+                <li><strong>Chụp ảnh màn hình</strong> giao diện đã vào nhóm Zalo thành công.</li>
+                <li>Tải ảnh màn hình vào mục <strong>"Nộp minh chứng"</strong> bên dưới.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="https://zalo.me/g/9scl8scbk5rsi3dk83gk" target="_blank" rel="noopener" class="btn btn-zalo" id="btn-join-zalo-main">
+              📲 Tham gia Zalo ngay
+            </a>
+            <button class="btn btn-outline" id="btn-zoom-qr">
+              🔍 Xem mã QR phóng to
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2: Cài đặt và sử dụng App Thanh niên Việt Nam -->
+        <div class="info-card red-accent" id="app-info-card">
+          <span class="card-badge badge-red">Nội dung 2 • Theo Công văn 73-CV/ĐTN</span>
+          <h3>2. Cài đặt & Sử dụng App Thanh niên Việt Nam</h3>
+          <p class="intro">
+            Thực hiện chuyển đổi số công tác quản lý đoàn viên theo chỉ đạo của Ban Thường vụ Đoàn Trường ĐH Lạc Hồng ngày 21/10/2026.
+          </p>
+
+          <ul class="step-list">
+            <li class="step-item">
+              <span class="step-num">1</span>
+              <div class="step-content">
+                <strong>Cài đặt ứng dụng:</strong>
+                <p>Tìm kiếm "Thanh niên Việt Nam" trên Google Play hoặc App Store và tải về máy.</p>
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-num">2</span>
+              <div class="step-content">
+                <strong>Xác thực thông tin CCCD:</strong>
+                <p>Vào mục "Cá nhân" ➜ "Thông tin Đoàn viên" ➜ Bấm "Xác thực ngay" bằng CCCD chuẩn.</p>
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-num">3</span>
+              <div class="step-content">
+                <strong>Cập nhật đơn vị sinh hoạt:</strong>
+                <p>Chọn Đoàn khoa bộ phận: <em>Khoa Công nghệ thông tin</em>; Chi đoàn: <em>Chọn đúng mã lớp đang học</em> ➜ Bấm <em>"Gửi phê duyệt"</em>.</p>
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-num">4</span>
+              <div class="step-content">
+                <strong>Học tập và thi Nghị quyết:</strong>
+                <p>Vào "Công tác Đoàn" ➜ "Học và thi" ➜ Thi Nghị quyết ĐH Đoàn XIII, ĐH Đảng XIV, Tư tưởng HCM 2026, Lý luận chính trị.</p>
+              </div>
+            </li>
+          </ul>
+
+          <div class="card-actions">
+            <a href="assets/73_CV_Huong_dan_cai_dat_va_su_dung_app_Thanh_nien_Viet_Nam.pdf" target="_blank" class="btn btn-primary" id="btn-view-pdf">
+              📖 Đọc toàn văn CV số 73 (PDF)
+            </a>
+            <a href="assets/73_CV_Huong_dan_cai_dat_va_su_dung_app_Thanh_nien_Viet_Nam.pdf" download class="btn btn-outline" id="btn-download-pdf">
+              📥 Tải file PDF
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: Form Nộp Minh Chứng -->
+  <section class="section" id="submit-section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            📤 NỘP MINH CHỨNG THAM GIA <span class="tag">Tiếp nhận trực tuyến</span>
+          </h2>
+          <p class="section-subtitle">Ảnh minh chứng sẽ được tự động lưu trữ và đồng bộ với Google Drive của Đoàn Khoa</p>
+        </div>
+      </div>
+
+      <div class="upload-panel" id="upload-panel">
+        <form id="submission-form">
+          <div class="form-grid">
+            <!-- Cột trái: Thông tin lớp & người nộp -->
+            <div>
+              <div class="form-group">
+                <label for="select-khoa" class="form-label">1. Chọn Khóa học <span class="req">*</span></label>
+                <select id="select-khoa" class="form-control form-select" required>
+                  <option value="">-- Chọn Khóa học --</option>
+                  <option value="Khóa 23">Khóa 23 (Năm 2023 - 7 lớp)</option>
+                  <option value="Khóa 24">Khóa 24 (Năm 2024 - 13 lớp)</option>
+                  <option value="Khóa 25">Khóa 25 (Năm 2025 - 14 lớp)</option>
+                  <option value="Khóa 26">Khóa 26 (Năm 2026 - 22 lớp)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="select-lop" class="form-label">2. Chọn Lớp sinh hoạt <span class="req">*</span></label>
+                <select id="select-lop" class="form-control form-select" required disabled>
+                  <option value="">-- Vui lòng chọn Khóa học trước --</option>
+                </select>
+                
+                <!-- Thông tin tự động load của lớp -->
+                <div class="class-preview-card" id="class-preview-card">
+                  <div class="preview-row">
+                    <span class="preview-label">Sĩ số lớp:</span>
+                    <span class="preview-val" id="prev-siso">—</span>
+                  </div>
+                  <div class="preview-row">
+                    <span class="preview-label">Bí thư chi đoàn:</span>
+                    <span class="preview-val" id="prev-bithu">—</span>
+                  </div>
+                  <div class="preview-row">
+                    <span class="preview-label">Lớp trưởng:</span>
+                    <span class="preview-val" id="prev-loptruong">—</span>
+                  </div>
+                  <div class="preview-row">
+                    <span class="preview-label">Trạng thái minh chứng:</span>
+                    <span class="preview-val" id="prev-status">—</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">3. Nội dung minh chứng nộp <span class="req">*</span></label>
+                <div class="radio-tile-group">
+                  <label class="radio-tile selected" id="tile-zalo">
+                    <input type="radio" name="loaiMinhChung" value="Zalo" checked>
+                    <div>
+                      <strong>Nhóm Zalo Bí thư</strong>
+                      <p style="font-size: 0.75rem; color: var(--text-muted);">Ảnh chụp đã tham gia nhóm</p>
+                    </div>
+                  </label>
+                  <label class="radio-tile" id="tile-app">
+                    <input type="radio" name="loaiMinhChung" value="App">
+                    <div>
+                      <strong>App Thanh niên VN</strong>
+                      <p style="font-size: 0.75rem; color: var(--text-muted);">Ảnh hồ sơ / thi nghị quyết</p>
+                    </div>
+                  </label>
+                  <label class="radio-tile" id="tile-both">
+                    <input type="radio" name="loaiMinhChung" value="Both">
+                    <div>
+                      <strong>Cả 2 minh chứng</strong>
+                      <p style="font-size: 0.75rem; color: var(--text-muted);">Zalo + App</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="input-hoten" class="form-label">4. Họ và tên người gửi minh chứng <span class="req">*</span></label>
+                <input type="text" id="input-hoten" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required>
+              </div>
+
+              <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label for="input-mssv" class="form-label">MSSV</label>
+                  <input type="text" id="input-mssv" class="form-control" placeholder="123000xxx">
+                </div>
+                <div>
+                  <label for="input-sdt" class="form-label">SĐT / Zalo <span class="req">*</span></label>
+                  <input type="tel" id="input-sdt" class="form-control" placeholder="09xxxxxxx" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cột phải: Upload ảnh minh chứng & Ghi chú -->
+            <div>
+              <div class="form-group">
+                <label class="form-label">5. Tải ảnh chụp màn hình minh chứng <span class="req">*</span></label>
+                
+                <div class="dropzone" id="dropzone" tabindex="0">
+                  <div class="dropzone-icon">📷</div>
+                  <div class="dropzone-text">
+                    <h4>Kéo thả hoặc bấm vào đây để chọn ảnh</h4>
+                    <p>Hỗ trợ JPG, PNG, WebP (Tự động nén tối ưu). Bạn cũng có thể dán ảnh trực tiếp bằng <strong>Ctrl + V</strong>.</p>
+                  </div>
+                  <input type="file" id="file-input" class="file-input" accept="image/*">
+                </div>
+
+                <!-- Preview ảnh khi đã chọn -->
+                <div class="preview-container" id="preview-container">
+                  <img id="image-preview" src="" alt="Ảnh minh chứng xem trước">
+                  <button type="button" class="btn-remove-preview" id="btn-remove-preview" title="Xóa ảnh chọn lại">✕</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="input-ghichu" class="form-label">6. Ghi chú thêm (nếu có)</label>
+                <textarea id="input-ghichu" class="form-control" rows="3" placeholder="Nhập ghi chú hoặc trường hợp nộp thay nếu lớp chưa có Bí thư..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg" id="btn-submit-evidence" style="width: 100%;">
+                🚀 GỬI MINH CHỨNG LÊN HỆ THỐNG
+              </button>
+
+              <div class="storage-status-bar">
+                <span>Trạng thái lưu trữ:</span>
+                <span class="badge" id="storage-status-badge">
+                  ● Lưu trữ Offline IndexedDB + Đồng bộ Google
+                </span>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Danh sách 56 Lớp & Chi tiết Cán sự -->
+  <section class="section" id="classes-section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            👥 DANH SÁCH 56 LỚP & CÁN SỰ CHI TIẾT <span class="tag">Khoa CNTT</span>
+          </h2>
+          <p class="section-subtitle">Tra cứu nhân sự chi tiết và tình trạng nộp minh chứng của từng lớp</p>
+        </div>
+      </div>
+
+      <!-- Filter Toolbar -->
+      <div class="filter-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Tìm theo mã lớp (ví dụ: 23CT111), tên Bí thư, Lớp trưởng...">
+        </div>
+
+        <div class="filter-tabs">
+          <button class="tab-btn active" data-khoa="ALL">Tất cả (56)</button>
+          <button class="tab-btn" data-khoa="Khóa 23">K23 (7)</button>
+          <button class="tab-btn" data-khoa="Khóa 24">K24 (13)</button>
+          <button class="tab-btn" data-khoa="Khóa 25">K25 (14)</button>
+          <button class="tab-btn" data-khoa="Khóa 26">K26 (22)</button>
+        </div>
+
+        <select id="status-filter" class="status-filter-select">
+          <option value="ALL">Tất cả tình trạng</option>
+          <option value="SUBMITTED">Đã nộp minh chứng</option>
+          <option value="NOT_SUBMITTED">Chưa nộp minh chứng</option>
+          <option value="HAS_BITHU">Đã có Bí thư</option>
+          <option value="MISSING_BITHU">Chưa có Bí thư</option>
+        </select>
+      </div>
+
+      <!-- Classes Grid -->
+      <div class="classes-grid" id="classes-grid">
+        <!-- Rendered dynamically by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: Bảng Tiến Độ & Quản Trị Minh Chứng -->
+  <section class="section" id="dashboard-section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            📊 BẢNG TIẾN ĐỘ & TỔNG HỢP MINH CHỨNG <span class="tag">Realtime</span>
+          </h2>
+          <p class="section-subtitle">Thống kê tiến độ hoàn thành theo từng khóa và danh sách minh chứng đã thu thập</p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-outline btn-sm" id="btn-export-csv">
+            📥 Xuất CSV / Excel
+          </button>
+          <button class="btn btn-outline btn-sm" id="btn-export-json">
+            📦 Sao lưu JSON
+          </button>
+        </div>
+      </div>
+
+      <!-- Course Progress Bars -->
+      <div class="progress-grid">
+        <div class="progress-card">
+          <h4>
+            <span>Tiến độ nộp minh chứng theo Khóa</span>
+            <span id="overall-percentage" style="color: #38bdf8;">0%</span>
+          </h4>
+          
+          <div class="course-progress-row">
+            <div class="prog-labels">
+              <span>Khóa 23</span>
+              <span id="prog-k23-val">0 / 7 lớp (0%)</span>
+            </div>
+            <div class="prog-bar-bg">
+              <div class="prog-bar-fill fill-emerald" id="prog-k23-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="course-progress-row">
+            <div class="prog-labels">
+              <span>Khóa 24</span>
+              <span id="prog-k24-val">0 / 13 lớp (0%)</span>
+            </div>
+            <div class="prog-bar-bg">
+              <div class="prog-bar-fill" id="prog-k24-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="course-progress-row">
+            <div class="prog-labels">
+              <span>Khóa 25</span>
+              <span id="prog-k25-val">0 / 14 lớp (0%)</span>
+            </div>
+            <div class="prog-bar-bg">
+              <div class="prog-bar-fill fill-orange" id="prog-k25-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="course-progress-row">
+            <div class="prog-labels">
+              <span>Khóa 26</span>
+              <span id="prog-k26-val">0 / 22 lớp (0%)</span>
+            </div>
+            <div class="prog-bar-bg">
+              <div class="prog-bar-fill fill-purple" id="prog-k26-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-card">
+          <h4>
+            <span>Cơ cấu chức danh Chi đoàn toàn Khoa</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Quy mô 56 lớp</span>
+          </h4>
+          <div class="course-progress-row">
+            <div class="prog-labels">
+              <span>Đã có Bí thư chi đoàn</span>
+              <span>25 / 56 lớp (44.6%)</span>
+            </div>
+            <div class="prog-bar-bg">
+              <div class="prog-bar-fill" style="width: 44.6%;"></div>
+            </div>
+          </div>
+          <div class="course-progress-row">
+            <div class="prog-labels">
+              <span>Đã có Phó Bí thư</span>
+              <span>20 / 56 lớp (35.7%)</span>
+            </div>
+            <div class="prog-bar-bg">
+              <div class="prog-bar-fill fill-orange" style="width: 35.7%;"></div>
+            </div>
+          </div>
+          <div class="course-progress-row">
+            <div class="prog-labels">
+              <span>Đã có Ủy viên</span>
+              <span>20 / 56 lớp (35.7%)</span>
+            </div>
+            <div class="prog-bar-bg">
+              <div class="prog-bar-fill fill-purple" style="width: 35.7%;"></div>
+            </div>
+          </div>
+          <div class="course-progress-row">
+            <div class="prog-labels">
+              <span>Chưa nộp bất kỳ cán sự nào</span>
+              <span style="color: #f87171;">25 / 56 lớp (44.6%)</span>
+            </div>
+            <div class="prog-bar-bg">
+              <div class="prog-bar-fill" style="width: 44.6%; background: #ef4444;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submissions Table -->
+      <div class="submissions-table-wrapper">
+        <table class="data-table" id="submissions-table">
+          <thead>
+            <tr>
+              <th>Thời gian nộp</th>
+              <th>Khóa</th>
+              <th>Mã lớp</th>
+              <th>Người nộp</th>
+              <th>SĐT / Zalo</th>
+              <th>Loại minh chứng</th>
+              <th>Ảnh minh chứng</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="submissions-tbody">
+            <tr>
+              <td colspan="8" style="text-align: center; color: var(--text-dim); padding: 30px;">
+                Chưa có minh chứng nào được gửi. Hãy chọn lớp và nộp minh chứng đầu tiên ở biểu mẫu trên!
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p><strong>ĐOÀN TNCS HỒ CHÍ MINH - ĐOÀN KHOA CÔNG NGHỆ THÔNG TIN</strong></p>
+      <p style="margin-top: 4px;">Trường Đại học Lạc Hồng • Số 10 Huỳnh Văn Nghệ, P. Bửu Long, TP. Biên Hòa, Đồng Nai</p>
+      <p style="margin-top: 6px; font-size: 0.78rem; opacity: 0.7;">
+        Hệ thống phục vụ công tác triển khai Công văn 73-CV/ĐTN và Quản lý Đoàn viên năm học 2026 - 2027.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Modal: Cấu hình kết nối Google Drive & Sheets -->
+  <div class="modal-backdrop" id="google-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>⚙️ Kết Nối Google Drive & Google Sheets (Miễn phí 100%)</h3>
+        <button class="modal-close" id="btn-close-google-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 14px;">
+          Hệ thống hỗ trợ lưu ảnh minh chứng trực tiếp vào <strong>Google Drive</strong> và ghi dữ liệu tự động vào <strong>Google Sheets</strong> của Khoa mà <strong>không cần thuê server hoặc hosting</strong>!
+        </p>
+
+        <h4 style="font-size: 0.95rem; color: #38bdf8; margin-bottom: 8px;">3 Bước thiết lập cực nhanh (Đang mở trên Cốc Cốc):</h4>
+        <ol style="padding-left: 20px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.6;">
+          <li>Bấm nút <strong>"🚀 Mở Cốc Cốc tạo Apps Script"</strong> bên dưới (trang <a href="https://script.new" target="_blank" style="color: #38bdf8;">script.new</a> sẽ mở ngay trên tài khoản Google đang đăng nhập của bạn).</li>
+          <li>Bấm nút <strong>"📋 Sao chép mã Google Apps Script"</strong> ➜ Dán vào trình biên tập ➜ Nhấn <strong>Lưu (Ctrl + S)</strong>.</li>
+          <li>Bấm nút <strong>"Triển khai"</strong> (Deploy) góc trên phải ➜ <strong>"Tùy chọn triển khai mới"</strong> ➜ Chọn <strong>"Ứng dụng web"</strong> ➜ Quyền truy cập: <strong>"Bất kỳ ai" (Anyone)</strong> ➜ Bấm <strong>Triển khai</strong> và dán URL vào ô bên dưới!</li>
+        </ol>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+          <a href="https://script.new" target="_blank" rel="noopener" class="btn btn-primary btn-sm" id="btn-open-coccoc-gas">
+            🚀 Mở trang tạo Google Apps Script mới
+          </a>
+          <button class="btn btn-outline btn-sm" id="btn-copy-apps-script">
+            📋 Sao chép toàn bộ mã nguồn
+          </button>
+        </div>
+
+        <div class="code-box" id="code-snippet">
+          Đang tải mã Apps Script...
+        </div>
+
+        <div class="form-group" style="margin-top: 18px;">
+          <label for="input-webhook-url" class="form-label">Dán URL Ứng Dụng Web (Google Apps Script Webhook URL):</label>
+          <input type="url" id="input-webhook-url" class="form-control" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button class="btn btn-outline" id="btn-test-webhook">🧪 Kiểm tra kết nối</button>
+          <button class="btn btn-primary" id="btn-save-webhook">💾 Lưu cấu hình</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Phóng to QR Code -->
+  <div class="modal-backdrop" id="qr-modal">
+    <div class="modal-dialog" style="max-width: 440px; text-align: center;">
+      <div class="modal-header">
+        <h3>Mã QR Nhóm Zalo Bí Thư Chi Đoàn</h3>
+        <button class="modal-close" id="btn-close-qr-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <img src="assets/QR_tham_gia_nhom.jpg" alt="Mã QR tham gia nhóm Zalo" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+        <p style="margin-top: 14px; font-size: 0.9rem; color: var(--text-muted);">
+          Mở ứng dụng Zalo trên điện thoại và quét mã này để tham gia nhóm ngay.
+        </p>
+        <a href="https://zalo.me/g/9scl8scbk5rsi3dk83gk" target="_blank" rel="noopener" class="btn btn-zalo" style="margin-top: 16px; width: 100%;">
+          📲 Bấm vào đây để mở Zalo trực tiếp
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Image Lightbox xem ảnh minh chứng phóng to -->
+  <div class="modal-backdrop" id="lightbox-modal">
+    <div class="modal-dialog" style="max-width: 780px; text-align: center; background: rgba(0,0,0,0.9);">
+      <div class="modal-header" style="border: none;">
+        <h3 id="lightbox-title">Ảnh Minh Chứng</h3>
+        <button class="modal-close" id="btn-close-lightbox">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 10px;">
+        <img id="lightbox-img" src="" alt="Minh chứng phóng to" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px;">
+        <p id="lightbox-caption" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- App Data & Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
