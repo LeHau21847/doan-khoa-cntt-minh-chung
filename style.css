@@ -2524,3 +2524,24 @@ body {
 .mini-exam-tag:hover {
   filter: brightness(1.2);
 }
+
+.btn-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.btn-warning:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}

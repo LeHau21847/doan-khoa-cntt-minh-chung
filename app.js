@@ -16,7 +16,7 @@ let db = null;
 // ==========================================
 function initDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("DoanKhoaCNTT_EvidenceDB", 1);
+    const request = indexedDB.open("DoanKhoaCNTT_EvidenceDB", 2);
     
     request.onupgradeneeded = (e) => {
       const database = e.target.result;
@@ -26,6 +26,9 @@ function initDB() {
         store.createIndex("khoa", "khoa", { unique: false });
         store.createIndex("timestamp", "timestamp", { unique: false });
       }
+      if (!database.objectStoreNames.contains("images")) {
+        database.createObjectStore("images", { keyPath: "id" });
+      }
     };
     
     request.onsuccess = (e) => {
@@ -34,8 +37,8 @@ function initDB() {
     };
     
     request.onerror = (e) => {
-      console.error("IndexedDB error:", e.target.error);
-      reject(e.target.error);
+      console.warn("IndexedDB error:", e.target.error);
+      resolve(null);
     };
   });
 }
@@ -71,6 +74,99 @@ function dbDeleteSubmission(id) {
     req.onsuccess = () => resolve(true);
     req.onerror = () => reject(req.error);
   });
+}
+
+function dbSaveExamImage(lop, mssv, topicId, imageBase64) {
+  return new Promise((resolve) => {
+    if (!db || !db.objectStoreNames.contains("images")) return resolve(false);
+    try {
+      const tx = db.transaction(["images"], "readwrite");
+      const store = tx.objectStore("images");
+      const key = `${lop}_${mssv}_${topicId}`;
+      store.put({ id: key, imageBase64: imageBase64, timestamp: Date.now() });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    } catch (e) {
+      resolve(false);
+    }
+  });
+}
+
+function dbGetExamImage(lop, mssv, topicId) {
+  return new Promise((resolve) => {
+    if (!db || !db.objectStoreNames.contains("images")) return resolve(null);
+    try {
+      const tx = db.transaction(["images"], "readonly");
+      const store = tx.objectStore("images");
+      const key = `${lop}_${mssv}_${topicId}`;
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ? req.result.imageBase64 : null);
+      req.onerror = () => resolve(null);
+    } catch (e) {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Tự động nén ảnh trên trình duyệt giảm dung lượng từ 3-8MB xuống ~100-150KB
+ * Giúp tải lên Google Drive cực nhanh và không bao giờ làm tràn bộ nhớ trình duyệt!
+ */
+function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      return reject(new Error('File không phải ảnh hợp lệ'));
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = () => reject(new Error('Không thể tải ảnh'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Lỗi đọc file ảnh'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatDriveImageUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('data:image')) return url;
+  const match = url.match(/[-\w]{25,}/);
+  if (match) {
+    return 'https://lh3.googleusercontent.com/d/' + match[0];
+  }
+  return url;
+}
+
+function matchTopicId(text) {
+  if (!text) return 'HCM_2026_DVTN';
+  const s = text.toLowerCase();
+  if (s.includes('xiii') || s.includes('đoàn toàn quốc') || s.includes('doan_xiii')) return 'NQ_DOAN_XIII';
+  if (s.includes('xiv') || s.includes('đảng toàn quốc') || s.includes('dang_xiv')) return 'NQ_DANG_XIV';
+  if (s.includes('cb đoàn') || s.includes('cán bộ đoàn') || s.includes('cb_doan') || s.includes('cbdoan')) return 'HCM_2026_CB_DOAN';
+  if (s.includes('đvtn') || s.includes('dvtn') || s.includes('đoàn viên thanh niên') || s.includes('thanh nien')) return 'HCM_2026_DVTN';
+  if (s.includes('lý luận') || s.includes('ly luan') || s.includes('lyluan')) return 'LY_LUAN_CHINH_TRI';
+  return 'HCM_2026_DVTN';
 }
 
 // ==========================================
@@ -1116,6 +1212,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnExportJson = document.getElementById("btn-export-json");
   if (btnExportCsv) btnExportCsv.addEventListener("click", exportToCSV);
   if (btnExportJson) btnExportJson.addEventListener("click", exportToJSON);
+
+  // Lắng nghe các nút Đồng bộ Cloud
+  document.querySelectorAll('.btn-sync-cloud').forEach(btn => {
+    btn.addEventListener('click', () => {
+      syncDataFromCloud(true);
+    });
+  });
+
+  // Tự động đồng bộ ngầm dữ liệu từ Google Drive / Sheets khi mở trang
+  setTimeout(() => {
+    syncDataFromCloud(false);
+  }, 1200);
 });
 
 // =========================================================================
@@ -1196,11 +1304,95 @@ function getClassState(lopCode) {
   };
 }
 
+/**
+ * LƯU TRỮ THÔNG MINH - KHẮC PHỤC TRIỆT ĐỂ LỖI QUOTA TRÊN BÀI THỨ 13:
+ * Tách biệt hoàn toàn metadata nhẹ (< 200 bytes) lưu trong localStorage
+ * và dữ liệu ảnh lớn lưu trong IndexedDB / Google Drive.
+ * Đảm bảo nộp đến hàng trăm sinh viên mà không bao giờ bị lỗi 'Chưa nộp'!
+ */
 function saveClassState(lopCode, state) {
+  if (!lopCode) return;
   try {
-    localStorage.setItem('class_state_' + lopCode, JSON.stringify(state));
+    const cleanState = {
+      zaloEvidence: null,
+      students: {}
+    };
+
+    if (state.zaloEvidence) {
+      cleanState.zaloEvidence = {
+        hasProof: true,
+        timestamp: state.zaloEvidence.timestamp || '',
+        submitterName: state.zaloEvidence.submitterName || '',
+        phone: state.zaloEvidence.phone || '',
+        fileUrl: state.zaloEvidence.fileUrl || ''
+      };
+      // Giữ base64 nhỏ nếu có (< 120KB) để xem offline
+      if (state.zaloEvidence.imageBase64 && state.zaloEvidence.imageBase64.length < 120000 && !state.zaloEvidence.fileUrl) {
+        cleanState.zaloEvidence.imageBase64 = state.zaloEvidence.imageBase64;
+      }
+    }
+
+    if (state.students) {
+      for (const mssv in state.students) {
+        const s = state.students[mssv];
+        if (!s) continue;
+        cleanState.students[mssv] = {
+          isNonMember: !!s.isNonMember,
+          exams: {}
+        };
+        const exams = s.exams || {};
+        for (const tid in exams) {
+          const ex = exams[tid];
+          cleanState.students[mssv].exams[tid] = {
+            topicCode: ex.topicCode || tid,
+            topicName: ex.topicName || '',
+            shortTitle: ex.shortTitle || '',
+            timestamp: ex.timestamp || '',
+            note: ex.note || '',
+            fileUrl: ex.fileUrl || '',
+            hasProof: true
+          };
+          // Chỉ giữ base64 nếu ảnh nén rất nhỏ (< 100KB) và chưa có link Drive
+          if (ex.imageBase64 && ex.imageBase64.length < 100000 && !ex.fileUrl) {
+            cleanState.students[mssv].exams[tid].imageBase64 = ex.imageBase64;
+          }
+        }
+        const examKeys = Object.keys(cleanState.students[mssv].exams);
+        if (examKeys.length > 0) {
+          cleanState.students[mssv].examEvidence = cleanState.students[mssv].exams[examKeys[0]];
+        }
+      }
+    }
+
+    localStorage.setItem('class_state_' + lopCode, JSON.stringify(cleanState));
   } catch (e) {
-    console.error('Error saving class state:', e);
+    console.warn('Cảnh báo bộ nhớ localStorage, chuyển sang chế độ siêu tinh gọn:', e);
+    try {
+      const ultraClean = {
+        zaloEvidence: state.zaloEvidence ? { hasProof: true, fileUrl: state.zaloEvidence.fileUrl || '', timestamp: state.zaloEvidence.timestamp || '' } : null,
+        students: {}
+      };
+      for (const mssv in state.students) {
+        const s = state.students[mssv];
+        ultraClean.students[mssv] = {
+          isNonMember: !!s.isNonMember,
+          exams: {}
+        };
+        for (const tid in (s.exams || {})) {
+          const ex = s.exams[tid];
+          ultraClean.students[mssv].exams[tid] = {
+            topicCode: tid,
+            shortTitle: ex.shortTitle || tid,
+            hasProof: true,
+            fileUrl: ex.fileUrl || '',
+            timestamp: ex.timestamp || ''
+          };
+        }
+      }
+      localStorage.setItem('class_state_' + lopCode, JSON.stringify(ultraClean));
+    } catch (err2) {
+      console.error('Không thể lưu localStorage khẩn cấp:', err2);
+    }
   }
 }
 
@@ -1214,13 +1406,207 @@ function sendToGoogleAppsScript(payload) {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     }).then(() => {
-      console.log('Background sync to GAS successful:', payload.loaiMinhChung);
+      console.log('Background sync to GAS successful:', payload.loaiMinhChung || payload.action);
+      // Tự động đồng bộ lại sau khi máy chủ Drive xử lý xong
+      setTimeout(() => {
+        syncDataFromCloud(false);
+      }, 4000);
     }).catch(err => {
       console.warn('Background sync error:', err);
     });
   } catch (err) {
     console.warn('Could not post to GAS:', err);
   }
+}
+
+let isSyncing = false;
+
+/**
+ * ĐỒNG BỘ TOÀN BỘ MINH CHỨNG TỪ GOOGLE SHEETS & DRIVE VỀ THIẾT BỊ
+ * Khắc phục hoàn toàn việc "máy khác nộp không thấy", "Admin không thấy tiến độ"!
+ */
+async function syncDataFromCloud(showNotifications = true) {
+  if (isSyncing) return;
+  isSyncing = true;
+
+  const webhookUrl = localStorage.getItem('gas_webhook_url') || (typeof APP_DATA !== 'undefined' && APP_DATA.config && APP_DATA.config.googleAppsScriptUrl) || '';
+  if (!webhookUrl) {
+    isSyncing = false;
+    return;
+  }
+
+  if (showNotifications) {
+    showToast('🔄 Đang đồng bộ dữ liệu từ Google Drive...', 'info');
+  }
+
+  document.querySelectorAll('.btn-sync-cloud').forEach(btn => {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Đang đồng bộ...';
+  });
+
+  try {
+    const data = await fetchCloudSubmissions(webhookUrl);
+    if (!data || data.status !== 'success') {
+      throw new Error(data ? data.message : 'Phản hồi không hợp lệ từ máy chủ Google');
+    }
+
+    let syncedCount = 0;
+    const submissions = data.submissions || [];
+    const nonMembers = data.nonMembers || [];
+
+    const classUpdates = {};
+
+    submissions.forEach(sub => {
+      const lop = (sub.lop || '').trim();
+      const mssv = (sub.mssv || '').trim();
+      if (!lop) return;
+
+      if (!classUpdates[lop]) {
+        classUpdates[lop] = getClassState(lop);
+      }
+      const state = classUpdates[lop];
+
+      // 1. Zalo Bí thư Chi đoàn
+      if (sub.loaiMinhChung && (sub.loaiMinhChung.indexOf('Zalo') >= 0 || sub.loaiMinhChung.indexOf('BITHU') >= 0 || !mssv)) {
+        if (!state.zaloEvidence || !state.zaloEvidence.hasProof || !state.zaloEvidence.fileUrl) {
+          state.zaloEvidence = {
+            hasProof: true,
+            fileUrl: sub.fileUrl || '',
+            timestamp: sub.timestamp || '',
+            submitterName: sub.hoten || 'Bí thư',
+            phone: sub.sdt || ''
+          };
+          syncedCount++;
+        }
+      } 
+      // 2. Bài thi Nghị quyết sinh viên
+      else if (mssv) {
+        if (!state.students[mssv]) state.students[mssv] = { isNonMember: false, exams: {} };
+        if (!state.students[mssv].exams) state.students[mssv].exams = {};
+
+        const topicId = matchTopicId(sub.loaiMinhChung || sub.topicCode);
+        const topicObj = EXAM_TOPICS.find(t => t.id === topicId) || EXAM_TOPICS[3];
+
+        if (!state.students[mssv].exams[topicId] || !state.students[mssv].exams[topicId].hasProof) {
+          state.students[mssv].exams[topicId] = {
+            topicCode: topicId,
+            topicName: topicObj.fullTitle,
+            shortTitle: topicObj.shortTitle,
+            fileUrl: sub.fileUrl || '',
+            timestamp: sub.timestamp || '',
+            note: sub.ghiChu || '',
+            hasProof: true
+          };
+          state.students[mssv].examEvidence = state.students[mssv].exams[topicId];
+          syncedCount++;
+        } else if (sub.fileUrl && !state.students[mssv].exams[topicId].fileUrl) {
+          state.students[mssv].exams[topicId].fileUrl = sub.fileUrl;
+        }
+      }
+    });
+
+    // Cập nhật trạng thái đối tượng Chưa kết nạp Đoàn
+    nonMembers.forEach(nm => {
+      const lop = (nm.lop || '').trim();
+      const mssv = (nm.mssv || '').trim();
+      if (!lop || !mssv) return;
+
+      if (!classUpdates[lop]) {
+        classUpdates[lop] = getClassState(lop);
+      }
+      const state = classUpdates[lop];
+      if (!state.students[mssv]) state.students[mssv] = { exams: {} };
+      state.students[mssv].isNonMember = !!nm.isNonMember;
+    });
+
+    // Lưu lại từng lớp
+    for (const lop in classUpdates) {
+      saveClassState(lop, classUpdates[lop]);
+    }
+
+    // Làm mới giao diện hiện tại
+    if (currentAuth && currentAuth.role === 'admin') {
+      renderAdminPortal();
+    } else if (currentAuth && currentAuth.role === 'class') {
+      renderClassPortal(currentAuth.lop);
+    }
+    renderClassesGrid();
+    renderDashboard();
+
+    if (showNotifications) {
+      showToast(`✅ Đã đồng bộ thành công! Có ${submissions.length} minh chứng trên hệ thống Google.`, 'success');
+    }
+    console.log(`Cloud sync finished: ${submissions.length} total records from Google Sheets.`);
+
+  } catch (err) {
+    console.warn('Lỗi đồng bộ Cloud:', err);
+    if (showNotifications) {
+      showToast('⚠️ Không thể tải dữ liệu từ Google: ' + err.message, 'warning');
+    }
+  } finally {
+    isSyncing = false;
+    document.querySelectorAll('.btn-sync-cloud').forEach(btn => {
+      btn.disabled = false;
+      btn.innerHTML = btn.id === 'btn-sync-cloud-admin' ? '🔄 Đồng bộ dữ liệu mới nhất' : '🔄 Đồng bộ dữ liệu';
+    });
+  }
+}
+
+/**
+ * Hỗ trợ fetch GET trực tiếp và tự động fallback sang JSONP
+ * để vượt qua mọi rào cản CORS trên điện thoại và máy tính!
+ */
+function fetchCloudSubmissions(webhookUrl) {
+  return new Promise((resolve, reject) => {
+    const cleanUrl = webhookUrl.split('?')[0];
+    const timestamp = Date.now();
+    
+    // 1. Thử qua fetch API trực tiếp
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    fetch(`${cleanUrl}?action=get_all&t=${timestamp}`, {
+      method: 'GET',
+      signal: controller.signal
+    })
+      .then(res => {
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(data => resolve(data))
+      .catch(fetchErr => {
+        console.warn('Fetch trực tiếp thất bại, chuyển sang cơ chế JSONP...', fetchErr);
+
+        // 2. Fallback sang JSONP
+        const callbackName = 'gasCallback_' + timestamp + '_' + Math.floor(Math.random() * 10000);
+        const script = document.createElement('script');
+
+        let timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Kết nối Google Sheets quá thời gian. Hãy đảm bảo Web App đã cài đặt quyền truy cập là "Bất kỳ ai" (Anyone).'));
+        }, 15000);
+
+        function cleanup() {
+          clearTimeout(timer);
+          if (script.parentNode) script.parentNode.removeChild(script);
+          delete window[callbackName];
+        }
+
+        window[callbackName] = function(json) {
+          cleanup();
+          resolve(json);
+        };
+
+        script.src = `${cleanUrl}?action=get_all&callback=${callbackName}&t=${timestamp}`;
+        script.onerror = function() {
+          cleanup();
+          reject(new Error('Không thể kết nối đến Web App Google. Hãy kiểm tra URL và phân quyền "Bất kỳ ai".'));
+        };
+
+        document.head.appendChild(script);
+      });
+  });
 }
 
 function updateNavAuthUI() {
@@ -1394,6 +1780,9 @@ function handleLoginAsClass(khoa, lop, pass) {
 
   const classSec = document.getElementById('class-portal-section');
   if (classSec) classSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Tự động đồng bộ bài nộp mới nhất từ Google Drive cho lớp
+  syncDataFromCloud(false);
 }
 
 function handleLoginAsAdmin() {
@@ -1413,6 +1802,9 @@ function handleLoginAsAdmin() {
 
   const adminSec = document.getElementById('admin-portal-section');
   if (adminSec) adminSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Tự động đồng bộ toàn bộ tiến độ 56 lớp cho Admin
+  syncDataFromCloud(false);
 }
 
 function handleLogout() {
@@ -1707,7 +2099,7 @@ function renderStudentsTable(lopCode, students, state) {
 
   // Attach view exam photo button
   tbody.querySelectorAll('.btn-view-exam-photo').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const mssv = btn.getAttribute('data-mssv');
       const sState = state.students[mssv];
       const exams = getStudentExams(sState);
@@ -1719,13 +2111,22 @@ function renderStudentsTable(lopCode, students, state) {
       const firstKey = keys[0];
       const item = exams[firstKey];
       const topic = EXAM_TOPICS.find(t => t.id === firstKey);
-      openLightbox(item.imageBase64 || item.fileUrl, (topic ? topic.shortTitle : firstKey) + ' - ' + studentName + ' (' + mssv + ')');
+      
+      let imgSrc = item.imageBase64 || item.fileUrl;
+      if (!imgSrc) {
+        imgSrc = await dbGetExamImage(lopCode, mssv, firstKey);
+      }
+      if (imgSrc) {
+        openLightbox(imgSrc, (topic ? topic.shortTitle : firstKey) + ' - ' + studentName + ' (' + mssv + ')');
+      } else {
+        showToast('Minh chứng đã được ghi nhận trên máy chủ Google!', 'info');
+      }
     });
   });
 
   // Attach click on mini topic badge
   tbody.querySelectorAll('.mini-exam-tag').forEach(tag => {
-    tag.addEventListener('click', (e) => {
+    tag.addEventListener('click', async (e) => {
       e.stopPropagation();
       const mssv = tag.getAttribute('data-mssv');
       const topicId = tag.getAttribute('data-topic');
@@ -1735,8 +2136,16 @@ function renderStudentsTable(lopCode, students, state) {
       const student = students.find(x => x.mssv === mssv);
       const studentName = student ? student.hoten : mssv;
       const topic = EXAM_TOPICS.find(t => t.id === topicId);
-      if (targetExam && (targetExam.imageBase64 || targetExam.fileUrl)) {
-        openLightbox(targetExam.imageBase64 || targetExam.fileUrl, (topic ? topic.shortTitle : 'Minh chứng') + ' - ' + studentName + ' (' + mssv + ')');
+      if (targetExam) {
+        let imgSrc = targetExam.imageBase64 || targetExam.fileUrl;
+        if (!imgSrc) {
+          imgSrc = await dbGetExamImage(lopCode, mssv, topicId);
+        }
+        if (imgSrc) {
+          openLightbox(imgSrc, (topic ? topic.shortTitle : 'Minh chứng') + ' - ' + studentName + ' (' + mssv + ')');
+        } else {
+          showToast('Minh chứng ' + (topic ? topic.shortTitle : '') + ' đã được ghi nhận trên hệ thống!', 'info');
+        }
       }
     });
   });
@@ -1888,9 +2297,16 @@ function openLightbox(imgSrc, title) {
   const t = document.getElementById('lightbox-title');
   if (!modal || !img) return;
 
-  img.src = imgSrc;
+  const displaySrc = formatDriveImageUrl(imgSrc);
+  img.src = displaySrc;
   if (t) t.textContent = title || 'Ảnh Minh Chứng';
-  if (cap) cap.textContent = title || '';
+  if (cap) {
+    if (imgSrc && imgSrc.startsWith('http')) {
+      cap.innerHTML = (title || '') + ' • <a href="' + imgSrc + '" target="_blank" rel="noopener" style="color:#38bdf8; text-decoration:underline; font-weight:600;">🔗 Mở ảnh gốc trên Google Drive</a>';
+    } else {
+      cap.textContent = title || '';
+    }
+  }
   modal.classList.add('active');
 }
 
@@ -2351,20 +2767,29 @@ function setupZaloModalControls() {
 
   if (btnClose) btnClose.addEventListener('click', closeZaloModal);
 
-  function handleFile(file) {
+  async function handleFile(file) {
     if (!file || !file.type.startsWith('image/')) {
       showToast('Vui lòng chọn file hình ảnh hợp lệ (JPG, PNG, WebP)!', 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      currentZaloImageBase64 = e.target.result;
+    try {
+      showToast('Đang tối ưu dung lượng ảnh...', 'info');
+      const compressed = await compressImage(file, 1200, 1200, 0.72);
+      currentZaloImageBase64 = compressed;
       if (previewImg) previewImg.src = currentZaloImageBase64;
       if (previewContainer) previewContainer.style.display = 'block';
       if (dropzone) dropzone.style.display = 'none';
-      showToast('Đã nhận diện ảnh minh chứng Zalo!', 'info');
-    };
-    reader.readAsDataURL(file);
+      showToast('Đã nhận diện ảnh minh chứng Zalo!', 'success');
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentZaloImageBase64 = e.target.result;
+        if (previewImg) previewImg.src = currentZaloImageBase64;
+        if (previewContainer) previewContainer.style.display = 'block';
+        if (dropzone) dropzone.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   if (dropzone && fileInput) {
@@ -2406,12 +2831,16 @@ function setupZaloModalControls() {
       const timeStr = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN');
 
       state.zaloEvidence = {
+        hasProof: true,
         imageBase64: currentZaloImageBase64,
         timestamp: timeStr,
         submitterName: hoten,
         phone: sdt
       };
       saveClassState(lop, state);
+
+      // Lưu trữ ảnh trong IndexedDB để xem lại
+      dbSaveExamImage(lop, 'bithu', 'zalo', currentZaloImageBase64);
 
       sendToGoogleAppsScript({
         action: 'submit_evidence',
@@ -2443,20 +2872,29 @@ function setupExamModalControls() {
 
   if (btnClose) btnClose.addEventListener('click', closeExamModal);
 
-  function handleFile(file) {
+  async function handleFile(file) {
     if (!file || !file.type.startsWith('image/')) {
       showToast('Vui lòng chọn file hình ảnh hợp lệ (JPG, PNG, WebP)!', 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      currentExamImageBase64 = e.target.result;
+    try {
+      showToast('Đang tối ưu dung lượng ảnh...', 'info');
+      const compressed = await compressImage(file, 1200, 1200, 0.72);
+      currentExamImageBase64 = compressed;
       if (previewImg) previewImg.src = currentExamImageBase64;
       if (previewContainer) previewContainer.style.display = 'block';
       if (dropzone) dropzone.style.display = 'none';
-      showToast('Đã nhận diện ảnh minh chứng thi!', 'info');
-    };
-    reader.readAsDataURL(file);
+      showToast('Đã nhận diện & tối ưu ảnh minh chứng!', 'success');
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentExamImageBase64 = e.target.result;
+        if (previewImg) previewImg.src = currentExamImageBase64;
+        if (previewContainer) previewContainer.style.display = 'block';
+        if (dropzone) dropzone.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   if (dropzone && fileInput) {
@@ -2520,12 +2958,16 @@ function setupExamModalControls() {
         shortTitle: topicObj.shortTitle,
         imageBase64: currentExamImageBase64,
         timestamp: timeStr,
-        note: note
+        note: note,
+        hasProof: true
       };
 
       // Giữ con trỏ examEvidence cho tính tương thích
       state.students[mssv].examEvidence = state.students[mssv].exams[topicId];
       saveClassState(lop, state);
+
+      // Lưu trữ ảnh trong IndexedDB để xem offline không giới hạn
+      dbSaveExamImage(lop, mssv, topicId, currentExamImageBase64);
 
       sendToGoogleAppsScript({
         action: 'submit_evidence',

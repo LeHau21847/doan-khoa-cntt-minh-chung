@@ -1,28 +1,29 @@
 /**
  * ==============================================================================================
- * GOOGLE APPS SCRIPT - HỆ THỐNG LƯU TRỮ MINH CHỨNG THEO TỪNG LỚP TRÊN GOOGLE DRIVE
+ * GOOGLE APPS SCRIPT - HỆ THỐNG LƯU TRỮ MINH CHỨNG THEO TỪNG LỚP TRÊN GOOGLE DRIVE & GOOGLE SHEET
  * ĐOÀN KHOA CÔNG NGHỆ THÔNG TIN - TRƯỜNG ĐẠI HỌC LẠC HỒNG (2026 - 2027)
  * ==============================================================================================
  * 
  * ĐẶC ĐIỂM NỔI BẬT:
- * 1. MIỄN PHÍ 100%: Dùng trực tiếp tài khoản Google Drive (tận dụng bộ nhớ Drive có sẵn của bạn).
- * 2. TỰ ĐỘNG TẠO 56 THƯ MỤC LỚP: Tự tạo cấu trúc thư mục phân cấp Khóa 23 -> 26 và 56 lớp riêng biệt.
- * 3. TỰ ĐỘNG ĐIỀU HƯỚNG ẢNH: Sinh viên lớp nào nộp, ảnh tự động rơi vào đúng thư mục của lớp đó!
- * 4. TỰ ĐỘNG GHI GOOGLE SHEET: Bảng tổng hợp minh chứng và bảng theo dõi tiến độ từng lớp.
+ * 1. MIỄN PHÍ 100%: Dùng trực tiếp tài khoản Google Drive & Google Sheet.
+ * 2. ĐỒNG BỘ 2 CHIỀU ĐA THIẾT BỊ: Máy tính, điện thoại, Admin hay Bí thư nộp ở đâu, tất cả thiết bị
+ *    khác đều thấy ngay lập tức sau khi bấm Đồng bộ hoặc tải trang.
+ * 3. TỰ ĐỘNG ĐIỀU HƯỚNG ẢNH: Sinh viên lớp nào nộp, ảnh tự động lưu vào đúng thư mục Google Drive của lớp đó.
+ * 4. BẢO TỒN DỮ LIỆU ĐÃ NỘP 100%: Toàn bộ danh sách và ảnh đã nộp trước đó trong Google Sheet và Drive
+ *    được giữ nguyên vẹn, không bao giờ bị ghi đè hay mất mát.
  * 
- * HƯỚNG DẪN 3 BƯỚC TRIỂN KHAI TRÊN TRÌNH DUYỆT CỐC CỐC (ĐÃ ĐĂNG NHẬP GOOGLE):
- * Bước 1: Mở https://script.new trên Cốc Cốc ➜ Đặt tên dự án là "HeThong_MinhChung_KhoaCNTT".
- * Bước 2: Dán toàn bộ mã này vào ➜ Bấm Lưu (Ctrl + S).
- *         (Tùy chọn: Chọn hàm "khoiTaoHeThong56Lop" rồi bấm "Chạy" để tạo ngay 56 thư mục trên Drive).
+ * ==============================================================================================
+ * HƯỚNG DẪN CẬP NHẬT TRÊN CỐC CỐC / CHROME (ĐÃ ĐĂNG NHẬP GOOGLE):
+ * Bước 1: Mở dự án Google Apps Script của bạn (hoặc truy cập https://script.google.com).
+ * Bước 2: Dán toàn bộ mã nguồn này thay thế mã cũ ➜ Bấm biểu tượng Lưu 💾 (Ctrl + S).
  * Bước 3: Bấm nút "Triển khai" (Deploy) ở góc trên bên phải:
- *         ➜ Chọn "Tùy chọn triển khai mới" (New deployment)
- *         ➜ Bấm biểu tượng bánh răng ⚙️ ➜ Chọn "Ứng dụng web" (Web app)
- *         ➜ Cấu hình:
- *             - Mô tả: Hệ thống tiếp nhận minh chứng
- *             - Thực thi dưới dạng (Execute as): "Tôi" (Me - tài khoản Google của bạn)
- *             - Ai có quyền truy cập (Who has access): "Bất kỳ ai" (Anyone)
- *         ➜ Bấm "Triển khai", cấp quyền truy cập Google Drive & Sheets.
- *         ➜ Sao chép "URL ứng dụng web" (Web App URL) và dán vào web là XONG!
+ *         ➜ Chọn "Quản lý bản triển khai" (Manage deployments)
+ *         ➜ Bấm biểu tượng cây bút chì ✏️ để chỉnh sửa bản triển khai hiện tại
+ *         ➜ Chọn:
+ *             - Phiên bản (Version): Chọn "Mới" (New)
+ *             - Thực thi dưới dạng (Execute as): "Tôi" (Me)
+ *             - Ai có quyền truy cập (Who has access): "Bất kỳ ai" (Anyone)  <--- BẮT BUỘC ĐỂ MÁY KHÁC ĐỒNG BỘ ĐƯỢC!
+ *         ➜ Bấm nút "Triển khai" (Deploy).
  * ==============================================================================================
  */
 
@@ -40,41 +41,196 @@ var DANH_SACH_LOP = {
 
 /**
  * HÀM KHỞI TẠO TỰ ĐỘNG: Tạo cấu trúc thư mục toàn bộ 56 lớp và Google Sheet
- * Bạn có thể chọn hàm này trên thanh công cụ Apps Script và bấm "Chạy" (Run) để tạo sẵn trước.
  */
 function khoiTaoHeThong56Lop() {
   Logger.log("Bắt đầu khởi tạo hệ thống thư mục 56 lớp trên Google Drive...");
   
-  // 1. Thư mục gốc
   var rootFolder = getOrCreateFolder(ROOT_FOLDER_NAME, DriveApp.getRootFolder());
   Logger.log("Thư mục gốc: " + rootFolder.getUrl());
   
-  // 2. Tạo 4 thư mục Khóa và 56 thư mục Lớp
   for (var khoa in DANH_SACH_LOP) {
     var khoaFolder = getOrCreateFolder(khoa, rootFolder);
     var dsLopCuaKhoa = DANH_SACH_LOP[khoa];
     
     for (var i = 0; i < dsLopCuaKhoa.length; i++) {
       var maLop = dsLopCuaKhoa[i];
-      var lopFolder = getOrCreateFolder(maLop, khoaFolder);
+      getOrCreateFolder(maLop, khoaFolder);
     }
     Logger.log("Đã tạo xong các thư mục lớp của " + khoa);
   }
   
-  // 3. Tạo Google Sheet tổng hợp
-  var sheet = getOrCreateSpreadsheet(SPREADSHEET_NAME, rootFolder);
+  var ss = getOrCreateSpreadsheet(SPREADSHEET_NAME, rootFolder);
   Logger.log("Hoàn tất khởi tạo toàn bộ hệ thống! Sẵn sàng nhận minh chứng.");
   return "Đã tạo thành công thư mục 56 lớp trên Google Drive và Google Sheet!";
 }
 
 /**
- * XỬ LÝ TIẾP NHẬN DỮ LIỆU POST TỪ TRANG WEB
+ * XỬ LÝ GET: ĐỒNG BỘ DỮ LIỆU TỪ GOOGLE SHEET VỀ CÁC THIẾT BỊ / ADMIN
+ * Hỗ trợ cả JSON và JSONP (callback) để tương thích 100% với tất cả trình duyệt và điện thoại.
+ */
+function doGet(e) {
+  var callback = (e && e.parameter && e.parameter.callback) || "";
+  var action = (e && e.parameter && e.parameter.action) || "get_all";
+
+  try {
+    if (action === "ping") {
+      return respondJson({
+        status: "online",
+        message: "Hệ thống Google Drive & Sheets Khoa CNTT đang hoạt động tốt!",
+        time: Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss")
+      }, callback);
+    }
+
+    var rootFolder = getOrCreateFolder(ROOT_FOLDER_NAME, DriveApp.getRootFolder());
+    var ss = getOrCreateSpreadsheet(SPREADSHEET_NAME, rootFolder);
+    
+    // 1. Đọc tất cả minh chứng đã nộp từ Sheet "Tất cả minh chứng"
+    var submissions = [];
+    var sheetData = ss.getSheetByName("Tất cả minh chứng");
+    if (sheetData && sheetData.getLastRow() > 1) {
+      var numRows = sheetData.getLastRow() - 1;
+      var numCols = Math.max(sheetData.getLastColumn(), 13);
+      var values = sheetData.getRange(2, 1, numRows, numCols).getValues();
+
+      for (var i = 0; i < values.length; i++) {
+        var row = values[i];
+        var timestamp = row[0];
+        var khoa = row[1];
+        var lop = row[2];
+        var mssv = row[3];
+        var hoten = row[4];
+        var sdt = row[5];
+        var loaiMinhChung = row[6];
+        var doiTuong = row[7];
+        var driveLinkCell = row[8];
+        var folderLinkCell = row[9];
+        var fileName = row[10];
+        var directUrl = row[11];
+        var ghiChu = row[12];
+
+        // Lấy link ảnh xem trực tiếp
+        var fileUrl = String(directUrl || "").trim();
+        if (!fileUrl && typeof driveLinkCell === "string") {
+          var match = driveLinkCell.match(/https:\/\/[^\s"\)]+/);
+          if (match) fileUrl = match[0];
+        }
+
+        if (lop || mssv || hoten) {
+          var timeStr = "";
+          if (timestamp instanceof Date) {
+            timeStr = Utilities.formatDate(timestamp, "GMT+7", "dd/MM/yyyy HH:mm:ss");
+          } else {
+            timeStr = String(timestamp || "");
+          }
+
+          submissions.push({
+            timestamp: timeStr,
+            khoa: String(khoa || ""),
+            lop: String(lop || "").trim(),
+            mssv: String(mssv || "").trim(),
+            hoten: String(hoten || "").trim(),
+            sdt: String(sdt || "").trim(),
+            loaiMinhChung: String(loaiMinhChung || "").trim(),
+            doiTuong: String(doiTuong || "").trim(),
+            fileUrl: fileUrl,
+            fileName: String(fileName || "").trim(),
+            ghiChu: String(ghiChu || "").trim()
+          });
+        }
+      }
+    }
+
+    // 2. Đọc danh sách Chưa kết nạp Đoàn (nếu có sheet TrangThai_DoanVien)
+    var nonMembers = [];
+    var sheetNM = ss.getSheetByName("TrangThai_DoanVien");
+    if (sheetNM && sheetNM.getLastRow() > 1) {
+      var nmValues = sheetNM.getRange(2, 1, sheetNM.getLastRow() - 1, 5).getValues();
+      for (var j = 0; j < nmValues.length; j++) {
+        var r = nmValues[j];
+        var nmLop = String(r[1] || "").trim();
+        var nmMssv = String(r[2] || "").trim();
+        var statusStr = String(r[4] || "").toLowerCase();
+        var isNon = (statusStr.indexOf("chưa") >= 0);
+        if (nmLop && nmMssv) {
+          nonMembers.push({
+            lop: nmLop,
+            mssv: nmMssv,
+            isNonMember: isNon
+          });
+        }
+      }
+    }
+
+    return respondJson({
+      status: "success",
+      totalSubmissions: submissions.length,
+      submissions: submissions,
+      nonMembers: nonMembers,
+      serverTime: Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss")
+    }, callback);
+
+  } catch (err) {
+    return respondJson({
+      status: "error",
+      message: "Lỗi đồng bộ dữ liệu: " + err.toString()
+    }, callback);
+  }
+}
+
+/**
+ * XỬ LÝ POST: TIẾP NHẬN BÀI NỘP VÀ LƯU VÀO GOOGLE DRIVE + GOOGLE SHEET
  */
 function doPost(e) {
   try {
     var raw = e.postData.contents;
     var data = JSON.parse(raw);
     
+    var rootFolder = getOrCreateFolder(ROOT_FOLDER_NAME, DriveApp.getRootFolder());
+    var ss = getOrCreateSpreadsheet(SPREADSHEET_NAME, rootFolder);
+    var nowFormatted = Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss");
+
+    // TRƯỜNG HỢP 1: Cập nhật đối tượng Đoàn viên / Chưa kết nạp Đoàn
+    if (data.action === "update_doan_vien_status") {
+      var sheetNM = ss.getSheetByName("TrangThai_DoanVien");
+      if (!sheetNM) {
+        sheetNM = ss.insertSheet("TrangThai_DoanVien");
+        sheetNM.appendRow(["Thời gian cập nhật", "Mã lớp", "MSSV", "Họ và tên", "Trạng thái đối tượng"]);
+        sheetNM.getRange("A1:E1").setBackground("#38bdf8").setFontColor("#0f172a").setFontWeight("bold");
+        sheetNM.setFrozenRows(1);
+      }
+
+      var targetLop = (data.lop || "").trim();
+      var targetMssv = (data.mssv || "").trim();
+      var targetHoten = (data.hoten || "").trim();
+      var isNon = !!data.isNonMember;
+      var statusText = isNon ? "Chưa kết nạp Đoàn" : "Đoàn viên";
+
+      var foundRow = -1;
+      if (sheetNM.getLastRow() > 1) {
+        var existing = sheetNM.getRange(2, 2, sheetNM.getLastRow() - 1, 2).getValues();
+        for (var k = 0; k < existing.length; k++) {
+          if (String(existing[k][0]).trim() === targetLop && String(existing[k][1]).trim() === targetMssv) {
+            foundRow = k + 2;
+            break;
+          }
+        }
+      }
+
+      if (foundRow > 0) {
+        sheetNM.getRange(foundRow, 1).setValue(nowFormatted);
+        sheetNM.getRange(foundRow, 4).setValue(targetHoten);
+        sheetNM.getRange(foundRow, 5).setValue(statusText);
+      } else {
+        sheetNM.appendRow([nowFormatted, targetLop, targetMssv, targetHoten, statusText]);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Đã cập nhật trạng thái " + statusText + " cho " + targetHoten + " (" + targetMssv + ")"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // TRƯỜNG HỢP 2: Nộp minh chứng (Zalo Bí thư hoặc Bài thi Nghị quyết)
     var maLop = (data.lop || "").trim();
     var khoa = (data.khoa || "").trim();
     var hoten = (data.hoten || "").trim();
@@ -83,31 +239,25 @@ function doPost(e) {
     var loaiMinhChung = (data.loaiMinhChung || "").trim();
     var doiTuong = (data.doiTuong || (data.isNonMember ? "Chưa kết nạp Đoàn" : "Đoàn viên")).trim();
     var ghiChu = (data.ghiChu || "").trim();
-    
+
     if (!khoa && maLop.length >= 2) {
       khoa = "Khóa " + maLop.substring(0, 2);
     }
-    
-    // 1. Lấy hoặc tạo thư mục gốc
-    var rootFolder = getOrCreateFolder(ROOT_FOLDER_NAME, DriveApp.getRootFolder());
-    
-    // 2. Lấy hoặc tạo thư mục Khóa
+
     var khoaFolder = getOrCreateFolder(khoa || "Chưa phân khóa", rootFolder);
-    
-    // 3. Lấy hoặc tạo thư mục RIÊNG CỦA LỚP
     var lopFolder = getOrCreateFolder(maLop || "Khác", khoaFolder);
-    
-    // 4. Lưu ảnh minh chứng vào đúng thư mục của lớp
+
+    // Lưu file ảnh vào thư mục riêng của lớp
     var fileUrl = "";
     var fileName = "";
     if (data.imageBase64) {
       var contentType = data.imageType || "image/jpeg";
       var base64Data = data.imageBase64.replace(/^data:image\/\w+;base64,/, "");
       var decodedBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), contentType);
-      
+
       var timeStampStr = Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd_HHmmss");
       var safeName = removeVietnameseAccents(hoten).replace(/\s+/g, "");
-      
+
       if (loaiMinhChung.indexOf("Zalo") >= 0 || loaiMinhChung === "ZALO_BITHU") {
         fileName = "[" + maLop + "]_BITHU_ZALO_" + (safeName || "BiThu") + "_" + timeStampStr + ".jpg";
       } else {
@@ -127,18 +277,15 @@ function doPost(e) {
         }
         fileName = "[" + maLop + "]_" + (mssv ? mssv + "_" : "") + (safeName || "SinhVien") + "_" + safeTopic + "_" + timeStampStr + ".jpg";
       }
-      
+
       decodedBlob.setName(fileName);
-      
+
       var file = lopFolder.createFile(decodedBlob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       fileUrl = file.getUrl();
     }
-    
-    // 5. Ghi vào Google Sheet tổng hợp
-    var ss = getOrCreateSpreadsheet(SPREADSHEET_NAME, rootFolder);
-    var nowFormatted = Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss");
-    
+
+    // Ghi vào Google Sheet tổng hợp (appendRow đảm bảo dữ liệu trước không bị mất)
     var sheetData = ss.getSheetByName("Tất cả minh chứng");
     sheetData.appendRow([
       nowFormatted,
@@ -155,7 +302,7 @@ function doPost(e) {
       fileUrl,
       ghiChu
     ]);
-    
+
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       message: "Đã lưu thành công vào thư mục lớp " + maLop + " trên Google Drive!",
@@ -164,7 +311,7 @@ function doPost(e) {
       fileName: fileName,
       timestamp: nowFormatted
     })).setMimeType(ContentService.MimeType.JSON);
-    
+
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
@@ -173,19 +320,17 @@ function doPost(e) {
   }
 }
 
-/**
- * XỬ LÝ GET: Kiểm tra kết nối từ trang Web
- */
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({
-    status: "online",
-    message: "Hệ thống Google Drive & Sheets Khoa CNTT - ĐH Lạc Hồng đang hoạt động tốt!",
-    rootFolder: ROOT_FOLDER_NAME,
-    time: Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss")
-  })).setMimeType(ContentService.MimeType.JSON);
-}
-
 // ==================== CÁC HÀM TIỆN ÍCH HỖ TRỢ ====================
+
+function respondJson(data, callback) {
+  var jsonStr = JSON.stringify(data);
+  if (callback && /^[a-zA-Z0-9_]+$/.test(callback)) {
+    return ContentService.createTextOutput(callback + "(" + jsonStr + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(jsonStr)
+    .setMimeType(ContentService.MimeType.JSON);
+}
 
 function getOrCreateFolder(name, parent) {
   var folders = parent.getFoldersByName(name);

@@ -141,7 +141,12 @@
             <strong id="portal-bithu-name">Chưa có Bí thư</strong>
             <span id="portal-bithu-contact">SĐT: -- • MSSV: --</span>
           </div>
-          <button class="btn btn-outline btn-sm" id="btn-class-logout">🚪 Đăng xuất Lớp</button>
+          <div class="portal-header-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-warning btn-sm btn-sync-cloud" id="btn-sync-cloud-class" title="Cập nhật minh chứng mới nhất từ Google Drive">
+              🔄 Đồng bộ dữ liệu
+            </button>
+            <button class="btn btn-outline btn-sm" id="btn-class-logout">🚪 Đăng xuất Lớp</button>
+          </div>
         </div>
       </div>
 
@@ -276,7 +281,10 @@
           <h2 class="portal-title">Trung Tâm Quản Trị & Theo Dõi Tiến Độ 56 Chi Đoàn</h2>
           <p class="portal-desc">Giám sát toàn diện tình trạng tham gia nhóm Zalo Bí thư và kết quả thi Nghị quyết của 1.372 sinh viên</p>
         </div>
-        <div class="portal-header-right">
+        <div class="portal-header-right" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-warning btn-sm btn-sync-cloud" id="btn-sync-cloud-admin" title="Tải toàn bộ minh chứng mới nhất đã nộp từ Google Drive/Sheets">
+            🔄 Đồng bộ dữ liệu mới nhất
+          </button>
           <button class="btn btn-primary btn-sm" id="btn-export-admin-full">
             📥 Xuất toàn bộ 56 lớp & 1.372 SV (Excel/CSV)
           </button>
