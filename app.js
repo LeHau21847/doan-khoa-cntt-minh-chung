@@ -614,19 +614,21 @@ function renderClassesGrid() {
         <!-- Accordion details -->
         <div class="class-accordion" id="acc-${c.lop}">
           <p style="font-weight:700; color:#fff; margin-bottom:8px;">Danh sách Ban cán sự & Chi đoàn đã nộp:</p>
-          <table class="officers-table">
-            <thead>
-              <tr>
-                <th>Chức vụ</th>
-                <th>Họ và tên</th>
-                <th>MSSV</th>
-                <th>SĐT / Zalo</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${officersRows}
-            </tbody>
-          </table>
+          <div class="officers-table-wrapper">
+            <table class="officers-table">
+              <thead>
+                <tr>
+                  <th>Chức vụ</th>
+                  <th>Họ và tên</th>
+                  <th>MSSV</th>
+                  <th>SĐT / Zalo</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${officersRows}
+              </tbody>
+            </table>
+          </div>
           ${galleryHtml}
         </div>
       </div>

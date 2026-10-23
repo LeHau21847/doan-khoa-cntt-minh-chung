@@ -11,6 +11,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
+  <!-- Favicon: Huy hiệu Đoàn -->
+  <link rel="icon" type="image/png" href="assets/Huy_Hieu_Doan.png">
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,10 +22,10 @@
   <nav class="navbar" id="navbar">
     <div class="container nav-content">
       <a href="#hero" class="brand" id="brand-link">
-        <div class="brand-badge">IT</div>
+        <img src="assets/Huy_Hieu_Doan.png" alt="Huy hiệu Đoàn TNCS Hồ Chí Minh" class="brand-logo-img" id="main-logo-badge">
         <div class="brand-text">
-          <h1>ĐOÀN KHOA CÔNG NGHỆ THÔNG TIN</h1>
-          <p>Trường Đại học Lạc Hồng</p>
+          <h1>ĐOÀN KHOA CNTT</h1>
+          <p>Trường ĐH Lạc Hồng</p>
         </div>
       </a>
       
@@ -35,7 +38,7 @@
       
       <div class="nav-actions">
         <button class="btn btn-outline btn-sm" id="btn-open-google-modal" title="Cấu hình Google Drive & Sheets">
-          ⚙️ Kết nối Google Drive
+          ⚙️ Google Drive
         </button>
         <a href="https://zalo.me/g/9scl8scbk5rsi3dk83gk" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" id="btn-nav-zalo">
           📲 Vào nhóm Zalo
@@ -307,7 +310,7 @@
                 <input type="text" id="input-hoten" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required>
               </div>
 
-              <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group form-row-2col">
                 <div>
                   <label for="input-mssv" class="form-label">MSSV</label>
                   <input type="text" id="input-mssv" class="form-control" placeholder="123000xxx">
@@ -632,6 +635,26 @@
         <p id="lightbox-caption" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);"></p>
       </div>
     </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar (Hiển thị riêng trên điện thoại) -->
+  <div class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <a href="#info-hub" class="mob-nav-item">
+      <span class="mob-nav-icon">📌</span>
+      <span class="mob-nav-label">Hướng dẫn</span>
+    </a>
+    <a href="#submit-section" class="mob-nav-item active-submit">
+      <span class="mob-nav-icon">📤</span>
+      <span class="mob-nav-label">Nộp ngay</span>
+    </a>
+    <a href="#classes-section" class="mob-nav-item">
+      <span class="mob-nav-icon">👥</span>
+      <span class="mob-nav-label">56 Lớp</span>
+    </a>
+    <a href="#dashboard-section" class="mob-nav-item">
+      <span class="mob-nav-icon">📊</span>
+      <span class="mob-nav-label">Tiến độ</span>
+    </a>
   </div>
 
   <!-- Toast Notification Container -->
