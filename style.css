@@ -2382,3 +2382,51 @@ body {
     padding: 14px 12px;
   }
 }
+
+/* ==========================================
+   GUEST LOGIN PROMPT
+   ========================================== */
+.login-prompt-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: var(--radius-lg);
+  padding: 40px 28px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 25px rgba(56, 189, 248, 0.15);
+  max-width: 800px;
+  margin: 20px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-prompt-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+}
+
+.login-prompt-card .prompt-icon {
+  font-size: 3.2rem;
+  margin-bottom: 14px;
+  display: inline-block;
+}
+
+.login-prompt-card h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.login-prompt-card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 620px;
+  margin: 0 auto 20px;
+}

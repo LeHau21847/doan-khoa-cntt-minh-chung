@@ -29,11 +29,8 @@
         </div>
       </a>
       
-      <ul class="nav-links">
+      <ul class="nav-links" id="main-nav-links">
         <li><a href="#info-hub">📌 Hướng dẫn & QR</a></li>
-        <li><a href="#submit-section">📤 Nộp minh chứng</a></li>
-        <li><a href="#classes-section">👥 56 Lớp & Cán sự</a></li>
-        <li><a href="#dashboard-section">📊 Bảng tiến độ</a></li>
       </ul>
       
       <div class="nav-actions">
@@ -42,7 +39,7 @@
             🔐 Đăng nhập (Admin / Lớp)
           </button>
         </div>
-        <button class="btn btn-outline btn-sm" id="btn-open-google-modal" title="Cấu hình Google Drive & Sheets">
+        <button class="btn btn-outline btn-sm" id="btn-open-google-modal" title="Cấu hình Google Drive & Sheets" style="display: none;">
           ⚙️ Drive
         </button>
         <a href="https://zalo.me/g/9scl8scbk5rsi3dk83gk" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" id="btn-nav-zalo">
@@ -458,8 +455,27 @@
     </div>
   </section>
 
+  <!-- SECTION: THÔNG BÁO YÊU CẦU ĐĂNG NHẬP DÀNH CHO KHÁCH / CÁN SỰ -->
+  <section class="section" id="guest-login-prompt">
+    <div class="container">
+      <div class="login-prompt-card">
+        <div class="prompt-icon">🔐</div>
+        <div class="prompt-content">
+          <h3>YÊU CẦU ĐĂNG NHẬP ĐỂ TƯƠNG TÁC HỆ THỐNG</h3>
+          <p>
+            Nhằm đảm bảo an toàn thông tin và tính bảo mật, hệ thống không cho phép xem dữ liệu của các lớp khác.
+            Bí thư / Cán sự Chi đoàn vui lòng đăng nhập để quản lý danh sách sinh viên lớp mình và nộp minh chứng.
+          </p>
+          <button class="btn btn-primary btn-lg" id="btn-prompt-login" style="margin-top: 10px;">
+            🚀 ĐĂNG NHẬP VÀO LỚP CỦA BẠN
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Section 2: Form Nộp Minh Chứng -->
-  <section class="section" id="submit-section">
+  <section class="section" id="submit-section" style="display: none;">
     <div class="container">
       <div class="section-header">
         <div>
@@ -601,7 +617,7 @@
   </section>
 
   <!-- Section 3: Danh sách 56 Lớp & Chi tiết Cán sự -->
-  <section class="section" id="classes-section">
+  <section class="section" id="classes-section" style="display: none;">
     <div class="container">
       <div class="section-header">
         <div>
@@ -644,7 +660,7 @@
   </section>
 
   <!-- Section 4: Bảng Tiến Độ & Quản Trị Minh Chứng -->
-  <section class="section" id="dashboard-section">
+  <section class="section" id="dashboard-section" style="display: none;">
     <div class="container">
       <div class="section-header">
         <div>
@@ -911,11 +927,8 @@
           </div>
 
           <div class="form-group">
-            <label for="login-class-pass" class="form-label">3. Mật khẩu lớp</label>
-            <input type="password" id="login-class-pass" class="form-control" placeholder="Mã lớp viết thường (ví dụ: 23ct111) hoặc 123456">
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
-              💡 Gợi ý: Nhập mã lớp viết thường (ví dụ: <code>23ct111</code>) hoặc <code>123456</code> để đăng nhập.
-            </p>
+            <label for="login-class-pass" class="form-label">3. Mật khẩu lớp <span class="req">*</span></label>
+            <input type="password" id="login-class-pass" class="form-control" placeholder="Nhập mật khẩu lớp..." required>
           </div>
 
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
@@ -926,16 +939,13 @@
         <!-- Form 2: Admin Đoàn Khoa -->
         <form id="form-login-admin" class="login-form-pane" style="display: none;">
           <div class="form-group">
-            <label for="login-admin-user" class="form-label">Tên tài khoản quản trị</label>
+            <label for="login-admin-user" class="form-label">Tên tài khoản quản trị <span class="req">*</span></label>
             <input type="text" id="login-admin-user" class="form-control" value="admin" required>
           </div>
 
           <div class="form-group">
-            <label for="login-admin-pass" class="form-label">Mật khẩu quản trị</label>
-            <input type="password" id="login-admin-pass" class="form-control" placeholder="Nhập mật khẩu admin..." required>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
-              💡 Mật khẩu mặc định: <code>admin@cntt2026</code>
-            </p>
+            <label for="login-admin-pass" class="form-label">Mật khẩu quản trị <span class="req">*</span></label>
+            <input type="password" id="login-admin-pass" class="form-control" placeholder="Nhập mật khẩu quản trị..." required>
           </div>
 
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">

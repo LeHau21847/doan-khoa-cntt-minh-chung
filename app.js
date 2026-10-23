@@ -648,15 +648,30 @@ function toggleAccordion(lopCode) {
 }
 
 function selectClassForSubmission(khoa, lop) {
+  if (currentAuth && currentAuth.role === 'admin') {
+    viewingAsAdmin = true;
+    updateSectionsVisibility();
+    renderClassPortal(lop);
+    const classSec = document.getElementById("class-portal-section");
+    if (classSec) {
+      classSec.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    return;
+  }
+
   const selectKhoa = document.getElementById("select-khoa");
   const selectLop = document.getElementById("select-lop");
 
-  selectKhoa.value = khoa;
-  selectKhoa.dispatchEvent(new Event("change"));
+  if (selectKhoa) {
+    selectKhoa.value = khoa;
+    selectKhoa.dispatchEvent(new Event("change"));
+  }
 
   setTimeout(() => {
-    selectLop.value = lop;
-    selectLop.dispatchEvent(new Event("change"));
+    if (selectLop) {
+      selectLop.value = lop;
+      selectLop.dispatchEvent(new Event("change"));
+    }
 
     const uploadPanel = document.getElementById("submit-section");
     if (uploadPanel) {
@@ -1165,6 +1180,129 @@ function updateNavAuthUI() {
   }
 }
 
+function updateSectionsVisibility() {
+  const guestPrompt = document.getElementById('guest-login-prompt');
+  const submitSec = document.getElementById('submit-section');
+  const classesSec = document.getElementById('classes-section');
+  const dashboardSec = document.getElementById('dashboard-section');
+  const classSec = document.getElementById('class-portal-section');
+  const adminSec = document.getElementById('admin-portal-section');
+  const btnDrive = document.getElementById('btn-open-google-modal');
+  const mainNavLinks = document.getElementById('main-nav-links');
+  const mobNav = document.getElementById('mobile-bottom-nav');
+
+  if (!currentAuth) {
+    // 1. CHƯA ĐĂNG NHẬP (KHÁCH):
+    // - Chỉ xem Hướng dẫn & QR
+    // - ẨN 56 lớp, bảng tiến độ và form nộp
+    // - ẨN nút Drive
+    if (guestPrompt) guestPrompt.style.display = 'block';
+    if (submitSec) submitSec.style.display = 'none';
+    if (classesSec) classesSec.style.display = 'none';
+    if (dashboardSec) dashboardSec.style.display = 'none';
+    if (classSec) classSec.style.display = 'none';
+    if (adminSec) adminSec.style.display = 'none';
+    if (btnDrive) btnDrive.style.display = 'none';
+
+    if (mainNavLinks) {
+      mainNavLinks.innerHTML = `
+        <li><a href="#info-hub">📌 Hướng dẫn & QR</a></li>
+      `;
+    }
+    if (mobNav) {
+      mobNav.innerHTML = `
+        <a href="#info-hub" class="mob-nav-item">
+          <span class="mob-nav-icon">📌</span>
+          <span class="mob-nav-label">Hướng dẫn</span>
+        </a>
+        <a href="javascript:void(0)" class="mob-nav-item active-submit" id="mob-nav-login-btn">
+          <span class="mob-nav-icon">🔐</span>
+          <span class="mob-nav-label">Đăng nhập</span>
+        </a>
+      `;
+      const mobLogin = document.getElementById('mob-nav-login-btn');
+      if (mobLogin) mobLogin.addEventListener('click', openLoginModal);
+    }
+  } else if (currentAuth.role === 'class') {
+    // 2. TÀI KHOẢN CHI ĐOÀN LỚP:
+    // - Chỉ xem và quản lý lớp của mình
+    // - KHÔNG được xem qua các lớp khác (ẩn 56 lớp & tiến độ)
+    // - ẨN nút Drive
+    if (guestPrompt) guestPrompt.style.display = 'none';
+    if (submitSec) submitSec.style.display = 'none';
+    if (classesSec) classesSec.style.display = 'none';
+    if (dashboardSec) dashboardSec.style.display = 'none';
+    if (adminSec) adminSec.style.display = 'none';
+    if (classSec) classSec.style.display = 'block';
+    if (btnDrive) btnDrive.style.display = 'none';
+
+    if (mainNavLinks) {
+      mainNavLinks.innerHTML = `
+        <li><a href="#info-hub">📌 Hướng dẫn & QR</a></li>
+        <li><a href="#class-portal-section">🎓 Chi đoàn Lớp ${currentAuth.lop}</a></li>
+      `;
+    }
+    if (mobNav) {
+      mobNav.innerHTML = `
+        <a href="#info-hub" class="mob-nav-item">
+          <span class="mob-nav-icon">📌</span>
+          <span class="mob-nav-label">Hướng dẫn</span>
+        </a>
+        <a href="#class-portal-section" class="mob-nav-item active-submit">
+          <span class="mob-nav-icon">🎓</span>
+          <span class="mob-nav-label">Lớp ${currentAuth.lop}</span>
+        </a>
+      `;
+    }
+  } else if (currentAuth.role === 'admin') {
+    // 3. ADMIN ĐOÀN KHOA:
+    // - Xem toàn quyền 56 lớp, bảng tiến độ
+    // - HIỆN nút cấu hình Drive
+    if (guestPrompt) guestPrompt.style.display = 'none';
+    if (submitSec) submitSec.style.display = 'none';
+    if (classesSec) classesSec.style.display = 'block';
+    if (dashboardSec) dashboardSec.style.display = 'block';
+    if (btnDrive) btnDrive.style.display = 'inline-flex';
+
+    if (viewingAsAdmin) {
+      if (adminSec) adminSec.style.display = 'none';
+      if (classSec) classSec.style.display = 'block';
+    } else {
+      if (adminSec) adminSec.style.display = 'block';
+      if (classSec) classSec.style.display = 'none';
+    }
+
+    if (mainNavLinks) {
+      mainNavLinks.innerHTML = `
+        <li><a href="#info-hub">📌 Hướng dẫn & QR</a></li>
+        <li><a href="#admin-portal-section">👑 Bàn làm việc Admin</a></li>
+        <li><a href="#classes-section">👥 56 Lớp</a></li>
+        <li><a href="#dashboard-section">📊 Bảng tiến độ</a></li>
+      `;
+    }
+    if (mobNav) {
+      mobNav.innerHTML = `
+        <a href="#info-hub" class="mob-nav-item">
+          <span class="mob-nav-icon">📌</span>
+          <span class="mob-nav-label">Hướng dẫn</span>
+        </a>
+        <a href="#admin-portal-section" class="mob-nav-item active-submit">
+          <span class="mob-nav-icon">👑</span>
+          <span class="mob-nav-label">Admin</span>
+        </a>
+        <a href="#classes-section" class="mob-nav-item">
+          <span class="mob-nav-icon">👥</span>
+          <span class="mob-nav-label">56 Lớp</span>
+        </a>
+        <a href="#dashboard-section" class="mob-nav-item">
+          <span class="mob-nav-icon">📊</span>
+          <span class="mob-nav-label">Tiến độ</span>
+        </a>
+      `;
+    }
+  }
+}
+
 function openLoginModal() {
   const modal = document.getElementById('login-modal');
   if (modal) modal.classList.add('active');
@@ -1186,16 +1324,13 @@ function handleLoginAsClass(khoa, lop, pass) {
   localStorage.setItem('auth_session', JSON.stringify(currentAuth));
 
   updateNavAuthUI();
+  updateSectionsVisibility();
   closeLoginModal();
-
-  const adminSec = document.getElementById('admin-portal-section');
-  const classSec = document.getElementById('class-portal-section');
-  if (adminSec) adminSec.style.display = 'none';
-  if (classSec) classSec.style.display = 'block';
 
   renderClassPortal(lop);
   showToast('🎉 Chào mừng Bí thư / Cán sự Chi đoàn ' + lop + '!', 'success');
 
+  const classSec = document.getElementById('class-portal-section');
   if (classSec) classSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -1208,16 +1343,13 @@ function handleLoginAsAdmin() {
   localStorage.setItem('auth_session', JSON.stringify(currentAuth));
 
   updateNavAuthUI();
+  updateSectionsVisibility();
   closeLoginModal();
-
-  const classSec = document.getElementById('class-portal-section');
-  const adminSec = document.getElementById('admin-portal-section');
-  if (classSec) classSec.style.display = 'none';
-  if (adminSec) adminSec.style.display = 'block';
 
   renderAdminPortal();
   showToast('👑 Chào mừng Quản trị viên Đoàn Khoa CNTT!', 'success');
 
+  const adminSec = document.getElementById('admin-portal-section');
   if (adminSec) adminSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -1227,13 +1359,10 @@ function handleLogout() {
   localStorage.removeItem('auth_session');
 
   updateNavAuthUI();
-
-  const classSec = document.getElementById('class-portal-section');
-  const adminSec = document.getElementById('admin-portal-section');
-  if (classSec) classSec.style.display = 'none';
-  if (adminSec) adminSec.style.display = 'none';
+  updateSectionsVisibility();
 
   showToast('Đã đăng xuất tài khoản thành công!', 'info');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderClassPortal(lopCode) {
@@ -1293,12 +1422,10 @@ function renderClassPortal(lopCode) {
       if (btnRet) {
         btnRet.addEventListener('click', () => {
           viewingAsAdmin = false;
-          const classSec = document.getElementById('class-portal-section');
+          updateSectionsVisibility();
+          renderAdminPortal();
           const adminSec = document.getElementById('admin-portal-section');
-          if (classSec) classSec.style.display = 'none';
           if (adminSec) {
-            adminSec.style.display = 'block';
-            renderAdminPortal();
             adminSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         });
@@ -1690,12 +1817,10 @@ function renderAdminPortal() {
     btn.addEventListener('click', () => {
       const lop = btn.getAttribute('data-lop');
       viewingAsAdmin = true;
+      updateSectionsVisibility();
+      renderClassPortal(lop);
       const classSec = document.getElementById('class-portal-section');
-      const adminSec = document.getElementById('admin-portal-section');
-      if (adminSec) adminSec.style.display = 'none';
       if (classSec) {
-        classSec.style.display = 'block';
-        renderClassPortal(lop);
         classSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
@@ -1861,7 +1986,16 @@ function initAuthAndPortals() {
         showToast('Vui lòng chọn Khóa học và Chi đoàn lớp!', 'error');
         return;
       }
-      handleLoginAsClass(khoa, lop, pass);
+
+      const cleanPass = pass.trim().toLowerCase();
+      const cleanLop = lop.trim().toLowerCase();
+
+      // Mật khẩu đúng là mã lớp viết thường (ví dụ: 23ct111), mã lớp gốc, hoặc 123456
+      if (cleanPass === cleanLop || cleanPass === '123456' || pass.trim() === lop) {
+        handleLoginAsClass(khoa, lop, pass);
+      } else {
+        showToast('Mật khẩu lớp không chính xác. Vui lòng kiểm tra lại!', 'error');
+      }
     });
   }
 
@@ -1869,12 +2003,12 @@ function initAuthAndPortals() {
   if (formAdmin) {
     formAdmin.addEventListener('submit', (e) => {
       e.preventDefault();
-      const user = document.getElementById('login-admin-user')?.value || '';
-      const pass = document.getElementById('login-admin-pass')?.value || '';
-      if (user.trim().toLowerCase() === 'admin' && (pass === 'admin@cntt2026' || pass === 'admin' || pass === 'cntt2026' || pass === '123456')) {
+      const user = (document.getElementById('login-admin-user')?.value || '').trim().toLowerCase();
+      const pass = (document.getElementById('login-admin-pass')?.value || '').trim();
+      if (user === 'admin' && (pass === 'admin@cntt2026' || pass === 'admin' || pass === 'cntt2026' || pass === '123456')) {
         handleLoginAsAdmin();
       } else {
-        showToast('Mật khẩu quản trị không đúng! (Mặc định: admin@cntt2026)', 'error');
+        showToast('Tài khoản hoặc mật khẩu quản trị không chính xác!', 'error');
       }
     });
   }
@@ -1888,6 +2022,10 @@ function initAuthAndPortals() {
       if (e.target === loginModal) closeLoginModal();
     });
   }
+
+  // Guest prompt login button
+  const btnPromptLogin = document.getElementById('btn-prompt-login');
+  if (btnPromptLogin) btnPromptLogin.addEventListener('click', openLoginModal);
 
   // Logout buttons
   const btnClassLogout = document.getElementById('btn-class-logout');
@@ -1969,23 +2107,28 @@ function initAuthAndPortals() {
       if (parsed && parsed.role === 'admin') {
         currentAuth = parsed;
         updateNavAuthUI();
-        const adminSec = document.getElementById('admin-portal-section');
-        if (adminSec) {
-          adminSec.style.display = 'block';
-          renderAdminPortal();
-        }
+        updateSectionsVisibility();
+        renderAdminPortal();
       } else if (parsed && parsed.role === 'class') {
         currentAuth = parsed;
         updateNavAuthUI();
-        const classSec = document.getElementById('class-portal-section');
-        if (classSec) {
-          classSec.style.display = 'block';
-          renderClassPortal(parsed.lop);
-        }
+        updateSectionsVisibility();
+        renderClassPortal(parsed.lop);
+      } else {
+        currentAuth = null;
+        updateNavAuthUI();
+        updateSectionsVisibility();
       }
+    } else {
+      currentAuth = null;
+      updateNavAuthUI();
+      updateSectionsVisibility();
     }
   } catch (e) {
     console.warn('Could not parse auth session:', e);
+    currentAuth = null;
+    updateNavAuthUI();
+    updateSectionsVisibility();
   }
 }
 
