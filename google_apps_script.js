@@ -111,7 +111,21 @@ function doPost(e) {
       if (loaiMinhChung.indexOf("Zalo") >= 0 || loaiMinhChung === "ZALO_BITHU") {
         fileName = "[" + maLop + "]_BITHU_ZALO_" + (safeName || "BiThu") + "_" + timeStampStr + ".jpg";
       } else {
-        fileName = "[" + maLop + "]_" + (mssv ? mssv + "_" : "") + (safeName || "SinhVien") + "_ThiNghiQuyet_" + timeStampStr + ".jpg";
+        var safeTopic = "ThiNghiQuyet";
+        if (data.topicCode) {
+          safeTopic = data.topicCode;
+        } else if (loaiMinhChung.indexOf("XIII") >= 0 || loaiMinhChung.indexOf("Đoàn toàn quốc") >= 0) {
+          safeTopic = "NQ_Doan_XIII";
+        } else if (loaiMinhChung.indexOf("XIV") >= 0 || loaiMinhChung.indexOf("Đảng") >= 0) {
+          safeTopic = "NQ_Dang_XIV";
+        } else if (loaiMinhChung.indexOf("CB Đoàn") >= 0 || loaiMinhChung.indexOf("CB_Doan") >= 0) {
+          safeTopic = "HCM2026_CBDoan";
+        } else if (loaiMinhChung.indexOf("ĐVTN") >= 0 || loaiMinhChung.indexOf("DVTN") >= 0) {
+          safeTopic = "HCM2026_DVTN";
+        } else if (loaiMinhChung.indexOf("lý luận") >= 0 || loaiMinhChung.indexOf("LyLuan") >= 0) {
+          safeTopic = "LyLuanChinhTri";
+        }
+        fileName = "[" + maLop + "]_" + (mssv ? mssv + "_" : "") + (safeName || "SinhVien") + "_" + safeTopic + "_" + timeStampStr + ".jpg";
       }
       
       decodedBlob.setName(fileName);

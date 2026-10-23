@@ -1007,7 +1007,7 @@
   <div class="modal-backdrop" id="modal-exam-evidence">
     <div class="modal-dialog" style="max-width: 520px;">
       <div class="modal-header">
-        <h3>📝 Nộp Minh Chứng Thi Nghị Quyết</h3>
+        <h3>📝 Nộp Minh Chứng Các Cuộc Thi (App TNVN)</h3>
         <button class="modal-close" id="btn-close-exam-modal">✕</button>
       </div>
       <div class="modal-body">
@@ -1019,9 +1019,26 @@
           <span class="badge badge-doanvien">🎗️ Đoàn viên</span>
         </div>
 
+        <!-- Trạng thái 5 nội dung cuộc thi của sinh viên -->
+        <div class="modal-topics-tracker" id="modal-topics-tracker" style="margin-top: 12px;"></div>
+
         <form id="form-submit-exam" style="margin-top: 16px;">
           <input type="hidden" id="exam-target-mssv">
           <input type="hidden" id="exam-target-lop">
+
+          <div class="form-group">
+            <label for="exam-select-topic" class="form-label">
+              Nội dung cuộc thi kiểm tra trên App TNVN: <span class="req">*</span>
+            </label>
+            <select id="exam-select-topic" class="form-control" style="font-size: 0.88rem; font-weight: 500; line-height: 1.4;" required>
+              <option value="NQ_DOAN_XIII">1. Kiểm tra, đánh giá kết quả nghiên cứu, học tập Nghị quyết đại hội Đoàn toàn quốc lần thứ XIII</option>
+              <option value="NQ_DANG_XIV">2. Kiểm tra, đánh giá kết quả học tập Nghị quyết Đại hội XIV của Đảng</option>
+              <option value="HCM_2026_CB_DOAN">3. Kiểm tra kết quả học tập Chuyên đề về tư tưởng, đạo đức, phong cách Hồ Chí Minh năm 2026_CB Đoàn</option>
+              <option value="HCM_2026_DVTN" selected>4. Kiểm tra kết quả học tập Chuyên đề về tư tưởng, đạo đức, phong cách Hồ Chí Minh năm 2026_ĐVTN</option>
+              <option value="LY_LUAN_CHINH_TRI">5. Kiểm tra học tập các bài lý luận chính trị</option>
+            </select>
+            <div id="exam-topic-status-alert" class="topic-alert-box" style="margin-top: 8px;"></div>
+          </div>
 
           <div class="form-group">
             <label class="form-label">Tải ảnh chụp màn hình kết quả thi trên App TNVN: <span class="req">*</span></label>
@@ -1040,7 +1057,7 @@
           </div>
 
           <div class="form-group">
-            <label for="exam-input-note" class="form-label">Điểm số / Ghi chú (nếu có)</label>
+            <label for="exam-input-note" class="form-label">Điểm số / Xếp loại / Ghi chú (nếu có)</label>
             <input type="text" id="exam-input-note" class="form-control" placeholder="Ví dụ: Đạt 100/100 điểm, Đạt chứng nhận...">
           </div>
 

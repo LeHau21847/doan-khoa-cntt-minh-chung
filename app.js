@@ -946,7 +946,14 @@ function doPost(e) {
     if (data.imageBase64) {
       var b64 = data.imageBase64.replace(/^data:image\\/\\w+;base64,/, "");
       var blob = Utilities.newBlob(Utilities.base64Decode(b64), "image/jpeg");
-      var fileName = "[" + maLop + "]_" + (data.mssv || "SV") + "_" + data.loaiMinhChung + "_" + Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd_HHmmss") + ".jpg";
+      var safeTopic = "ThiNghiQuyet";
+      if (data.topicCode) safeTopic = data.topicCode;
+      else if ((data.loaiMinhChung || "").indexOf("XIII") >= 0) safeTopic = "NQ_Doan_XIII";
+      else if ((data.loaiMinhChung || "").indexOf("XIV") >= 0) safeTopic = "NQ_Dang_XIV";
+      else if ((data.loaiMinhChung || "").indexOf("CB Đoàn") >= 0) safeTopic = "HCM2026_CBDoan";
+      else if ((data.loaiMinhChung || "").indexOf("ĐVTN") >= 0) safeTopic = "HCM2026_DVTN";
+      else if ((data.loaiMinhChung || "").indexOf("lý luận") >= 0) safeTopic = "LyLuanChinhTri";
+      var fileName = "[" + maLop + "]_" + (data.mssv ? data.mssv + "_" : "") + safeTopic + "_" + Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd_HHmmss") + ".jpg";
       blob.setName(fileName);
       var file = lopFolder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
@@ -957,8 +964,9 @@ function doPost(e) {
     var sheet = ss.getSheetByName("Tất cả minh chứng");
     sheet.appendRow([
       Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss"),
-      khoa, maLop, data.mssv, data.hoten, data.sdt, data.loaiMinhChung,
-      fileUrl ? '=HYPERLINK("' + fileUrl + '", "Xem ảnh")' : "Không có ảnh",
+      khoa, maLop, data.mssv || "", data.hoten || "", data.sdt || "", data.loaiMinhChung || "",
+      data.doiTuong || "Đoàn viên",
+      fileUrl ? '=HYPERLINK("' + fileUrl + '", "Xem ảnh minh chứng")' : "Không có ảnh",
       '=HYPERLINK("' + lopFolder.getUrl() + '", "Mở thư mục lớp ' + maLop + '")',
       data.ghiChu || ""
     ]);
@@ -1113,6 +1121,60 @@ document.addEventListener("DOMContentLoaded", async () => {
 // =========================================================================
 // 12. PORTAL & AUTHENTICATION MANAGER (ADMIN & 56 CLASS ACCOUNTS)
 // =========================================================================
+const EXAM_TOPICS = [
+  {
+    id: "NQ_DOAN_XIII",
+    shortTitle: "NQ Đoàn toàn quốc lần XIII",
+    fullTitle: "Kiểm tra, đánh giá kết quả nghiên cứu, học tập Nghị quyết đại hội Đoàn toàn quốc lần thứ XIII",
+    badgeColor: "#38bdf8"
+  },
+  {
+    id: "NQ_DANG_XIV",
+    shortTitle: "NQ Đại hội XIV của Đảng",
+    fullTitle: "Kiểm tra, đánh giá kết quả học tập Nghị quyết Đại hội XIV của Đảng",
+    badgeColor: "#f87171"
+  },
+  {
+    id: "HCM_2026_CB_DOAN",
+    shortTitle: "Chuyên đề HCM 2026 (CB Đoàn)",
+    fullTitle: "Kiểm tra kết quả học tập Chuyên đề về tư tưởng, đạo đức, phong cách Hồ Chí Minh năm 2026_CB Đoàn",
+    badgeColor: "#fb923c"
+  },
+  {
+    id: "HCM_2026_DVTN",
+    shortTitle: "Chuyên đề HCM 2026 (ĐVTN)",
+    fullTitle: "Kiểm tra kết quả học tập Chuyên đề về tư tưởng, đạo đức, phong cách Hồ Chí Minh năm 2026_ĐVTN",
+    badgeColor: "#eab308"
+  },
+  {
+    id: "LY_LUAN_CHINH_TRI",
+    shortTitle: "Học tập các bài lý luận chính trị",
+    fullTitle: "Kiểm tra học tập các bài lý luận chính trị",
+    badgeColor: "#a855f7"
+  }
+];
+
+function getStudentExams(sState) {
+  if (!sState) return {};
+  if (sState.exams) return sState.exams;
+  // Backward compatibility with legacy single examEvidence
+  if (sState.examEvidence) {
+    const topicId = sState.examEvidence.topicCode || "HCM_2026_DVTN";
+    return {
+      [topicId]: {
+        topicCode: topicId,
+        topicName: sState.examEvidence.topicName || EXAM_TOPICS[3].fullTitle,
+        shortTitle: sState.examEvidence.shortTitle || EXAM_TOPICS[3].shortTitle,
+        imageBase64: sState.examEvidence.imageBase64,
+        fileUrl: sState.examEvidence.fileUrl,
+        timestamp: sState.examEvidence.timestamp,
+        note: sState.examEvidence.note
+      }
+    };
+  }
+  return {};
+}
+
 let currentAuth = null;
 let viewingAsAdmin = false;
 let currentStudentFilter = 'ALL';
@@ -1378,8 +1440,11 @@ function renderClassPortal(lopCode) {
     const sState = state.students[s.mssv];
     if (sState && sState.isNonMember) {
       nonMemberCount++;
-    } else if (sState && sState.examEvidence) {
-      examSubmittedCount++;
+    } else if (sState) {
+      const exams = getStudentExams(sState);
+      if (Object.keys(exams).length > 0) {
+        examSubmittedCount++;
+      }
     }
   });
 
@@ -1523,7 +1588,8 @@ function renderStudentsTable(lopCode, students, state) {
   const filtered = students.filter(s => {
     const sState = state.students[s.mssv] || {};
     const isNon = !!sState.isNonMember;
-    const hasExam = !isNon && !!sState.examEvidence;
+    const exams = getStudentExams(sState);
+    const hasExam = !isNon && Object.keys(exams).length > 0;
 
     if (filter === 'DOAN_VIEN' && isNon) return false;
     if (filter === 'NON_MEMBER' && !isNon) return false;
@@ -1547,7 +1613,9 @@ function renderStudentsTable(lopCode, students, state) {
   filtered.forEach((s, idx) => {
     const sState = state.students[s.mssv] || {};
     const isNon = !!sState.isNonMember;
-    const hasExam = !isNon && !!sState.examEvidence;
+    const exams = getStudentExams(sState);
+    const submittedKeys = Object.keys(exams);
+    const count = submittedKeys.length;
 
     html += '<tr class="' + (isNon ? 'row-nonmember' : '') + '">';
     html += '<td>' + (idx + 1) + '</td>';
@@ -1569,10 +1637,17 @@ function renderStudentsTable(lopCode, students, state) {
     html += '<td>';
     if (isNon) {
       html += '<span class="badge-exam-exempt">⚪ Miễn thi (Chưa vào Đoàn)</span>';
-    } else if (hasExam) {
-      html += '<span class="badge-exam-done">✅ Đã nộp minh chứng</span>';
+    } else if (count > 0) {
+      html += '<span class="badge-exam-done">✅ Đã nộp (' + count + '/5 nội dung)</span>';
+      html += '<div class="student-exam-badges">';
+      EXAM_TOPICS.forEach(topic => {
+        if (exams[topic.id]) {
+          html += '<span class="mini-exam-tag" data-mssv="' + s.mssv + '" data-topic="' + topic.id + '" title="' + topic.fullTitle + ' (Nhấp để xem ảnh)">' + topic.shortTitle + '</span>';
+        }
+      });
+      html += '</div>';
     } else {
-      html += '<span class="badge-exam-pending">❌ Chưa nộp minh chứng</span>';
+      html += '<span class="badge-exam-pending">❌ Chưa nộp (0/5 nội dung)</span>';
     }
     html += '</td>';
 
@@ -1580,10 +1655,10 @@ function renderStudentsTable(lopCode, students, state) {
     html += '<td style="text-align: center;">';
     if (isNon) {
       html += '<span style="font-size:0.75rem; color:var(--text-muted);">Không bắt buộc</span>';
-    } else if (hasExam) {
-      html += '<div style="display:flex; gap:4px; justify-content:center;">';
-      html += '<button class="btn btn-outline btn-xs btn-view-exam-photo" data-mssv="' + s.mssv + '" title="Xem ảnh minh chứng">🔍 Xem</button>';
-      html += '<button class="btn btn-outline btn-xs btn-open-student-modal" data-mssv="' + s.mssv + '" data-name="' + s.hoten + '" title="Nộp lại ảnh khác">🔄 Đổi</button>';
+    } else if (count > 0) {
+      html += '<div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap;">';
+      html += '<button class="btn btn-outline btn-xs btn-view-exam-photo" data-mssv="' + s.mssv + '" title="Xem ảnh minh chứng">🔍 Xem (' + count + ')</button>';
+      html += '<button class="btn btn-primary btn-xs btn-open-student-modal" data-mssv="' + s.mssv + '" data-name="' + s.hoten + '" title="Nộp thêm hoặc thay đổi ảnh cuộc thi">➕ Nộp tiếp</button>';
       html += '</div>';
     } else {
       html += '<button class="btn btn-primary btn-xs btn-open-student-modal" data-mssv="' + s.mssv + '" data-name="' + s.hoten + '">📤 Nộp thi</button>';
@@ -1630,13 +1705,38 @@ function renderStudentsTable(lopCode, students, state) {
     });
   });
 
-  // Attach view exam photo
+  // Attach view exam photo button
   tbody.querySelectorAll('.btn-view-exam-photo').forEach(btn => {
     btn.addEventListener('click', () => {
       const mssv = btn.getAttribute('data-mssv');
       const sState = state.students[mssv];
-      if (sState && sState.examEvidence && (sState.examEvidence.imageBase64 || sState.examEvidence.fileUrl)) {
-        openLightbox(sState.examEvidence.imageBase64 || sState.examEvidence.fileUrl, 'Minh chứng Thi Nghị quyết - ' + (students.find(x => x.mssv === mssv)?.hoten || mssv));
+      const exams = getStudentExams(sState);
+      const student = students.find(x => x.mssv === mssv);
+      const studentName = student ? student.hoten : mssv;
+      const keys = Object.keys(exams);
+      if (keys.length === 0) return;
+
+      const firstKey = keys[0];
+      const item = exams[firstKey];
+      const topic = EXAM_TOPICS.find(t => t.id === firstKey);
+      openLightbox(item.imageBase64 || item.fileUrl, (topic ? topic.shortTitle : firstKey) + ' - ' + studentName + ' (' + mssv + ')');
+    });
+  });
+
+  // Attach click on mini topic badge
+  tbody.querySelectorAll('.mini-exam-tag').forEach(tag => {
+    tag.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const mssv = tag.getAttribute('data-mssv');
+      const topicId = tag.getAttribute('data-topic');
+      const sState = state.students[mssv];
+      const exams = getStudentExams(sState);
+      const targetExam = exams[topicId];
+      const student = students.find(x => x.mssv === mssv);
+      const studentName = student ? student.hoten : mssv;
+      const topic = EXAM_TOPICS.find(t => t.id === topicId);
+      if (targetExam && (targetExam.imageBase64 || targetExam.fileUrl)) {
+        openLightbox(targetExam.imageBase64 || targetExam.fileUrl, (topic ? topic.shortTitle : 'Minh chứng') + ' - ' + studentName + ' (' + mssv + ')');
       }
     });
   });
@@ -1670,6 +1770,47 @@ function closeZaloModal() {
   if (modal) modal.classList.remove('active');
 }
 
+function updateExamModalTopicView(topicId) {
+  if (!currentExamTarget) return;
+  const state = getClassState(currentExamTarget.lop);
+  const sState = (state.students && state.students[currentExamTarget.mssv]) || {};
+  const exams = getStudentExams(sState);
+  const existingExam = exams[topicId];
+
+  const alertBox = document.getElementById('exam-topic-status-alert');
+  const prevBox = document.getElementById('exam-preview-container');
+  const previewImg = document.getElementById('exam-image-preview');
+  const dropzone = document.getElementById('exam-dropzone');
+  const fileInput = document.getElementById('exam-file-input');
+  const noteInput = document.getElementById('exam-input-note');
+  const btnSubmit = document.getElementById('btn-send-exam-evidence');
+
+  if (fileInput) fileInput.value = '';
+
+  if (existingExam && (existingExam.imageBase64 || existingExam.fileUrl)) {
+    currentExamImageBase64 = existingExam.imageBase64 || existingExam.fileUrl;
+    if (alertBox) {
+      alertBox.className = 'topic-alert-box done';
+      alertBox.innerHTML = '✅ <strong>ĐÃ CÓ MINH CHỨNG:</strong> Đã ghi nhận lúc ' + (existingExam.timestamp || 'gần đây') + (existingExam.note ? (' (' + existingExam.note + ')') : '') + '. <br><span style="font-size:0.75rem; opacity:0.9;">Tải ảnh mới bên dưới sẽ thay thế ảnh cũ của nội dung này.</span>';
+    }
+    if (previewImg) previewImg.src = currentExamImageBase64;
+    if (prevBox) prevBox.style.display = 'block';
+    if (dropzone) dropzone.style.display = 'none';
+    if (noteInput) noteInput.value = existingExam.note || '';
+    if (btnSubmit) btnSubmit.textContent = '🔄 CẬP NHẬT / THAY THẾ MINH CHỨNG NỘI DUNG NÀY';
+  } else {
+    currentExamImageBase64 = null;
+    if (alertBox) {
+      alertBox.className = 'topic-alert-box pending';
+      alertBox.innerHTML = '⏳ <strong>CHƯA NỘP MINH CHỨNG:</strong> Sinh viên chưa nộp minh chứng cho nội dung này. Vui lòng tải ảnh chụp màn hình điểm thi trên App.';
+    }
+    if (prevBox) prevBox.style.display = 'none';
+    if (dropzone) dropzone.style.display = 'block';
+    if (noteInput) noteInput.value = '';
+    if (btnSubmit) btnSubmit.textContent = '🚀 LƯU & ĐỒNG BỘ MINH CHỨNG THI';
+  }
+}
+
 function openExamModal(lopCode, mssv, name) {
   const modal = document.getElementById('modal-exam-evidence');
   if (!modal) return;
@@ -1680,19 +1821,57 @@ function openExamModal(lopCode, mssv, name) {
   const elInfo = document.getElementById('exam-target-info');
   const hiddenMssv = document.getElementById('exam-target-mssv');
   const hiddenLop = document.getElementById('exam-target-lop');
+  const selectTopic = document.getElementById('exam-select-topic');
+  const trackerBox = document.getElementById('modal-topics-tracker');
 
   if (elName) elName.textContent = name;
   if (elInfo) elInfo.textContent = 'MSSV: ' + mssv + ' • Chi đoàn: ' + lopCode;
   if (hiddenMssv) hiddenMssv.value = mssv;
   if (hiddenLop) hiddenLop.value = lopCode;
 
-  currentExamImageBase64 = null;
-  const prevBox = document.getElementById('exam-preview-container');
-  const fileInput = document.getElementById('exam-file-input');
-  const noteInput = document.getElementById('exam-input-note');
-  if (prevBox) prevBox.style.display = 'none';
-  if (fileInput) fileInput.value = '';
-  if (noteInput) noteInput.value = '';
+  const state = getClassState(lopCode);
+  const sState = (state.students && state.students[mssv]) || {};
+  const exams = getStudentExams(sState);
+  const submittedCount = Object.keys(exams).length;
+
+  if (trackerBox) {
+    let chipsHtml = '<div class="modal-topics-tracker-title">';
+    chipsHtml += '<span>Tiến độ bài thi của sinh viên:</span>';
+    chipsHtml += '<strong style="color: ' + (submittedCount > 0 ? '#4ade80' : '#f87171') + ';">' + submittedCount + ' / 5 nội dung</strong>';
+    chipsHtml += '</div>';
+    chipsHtml += '<div class="topics-chips-list">';
+    EXAM_TOPICS.forEach(topic => {
+      const isDone = !!exams[topic.id];
+      chipsHtml += '<span class="topic-chip ' + (isDone ? 'done' : '') + '" data-topic="' + topic.id + '">';
+      chipsHtml += isDone ? '✅ ' : '⏳ ';
+      chipsHtml += topic.shortTitle;
+      chipsHtml += '</span>';
+    });
+    chipsHtml += '</div>';
+    trackerBox.innerHTML = chipsHtml;
+
+    trackerBox.querySelectorAll('.topic-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tid = chip.getAttribute('data-topic');
+        if (selectTopic) {
+          selectTopic.value = tid;
+          updateExamModalTopicView(tid);
+        }
+      });
+    });
+  }
+
+  // Chọn topic mặc định: ưu tiên topic chưa làm, hoặc mặc định
+  let defaultTopic = 'HCM_2026_DVTN';
+  const firstPending = EXAM_TOPICS.find(t => !exams[t.id]);
+  if (firstPending) {
+    defaultTopic = firstPending.id;
+  }
+  if (selectTopic) {
+    selectTopic.value = defaultTopic;
+  }
+
+  updateExamModalTopicView(defaultTopic);
 
   modal.classList.add('active');
 }
@@ -1741,8 +1920,12 @@ function renderAdminPortal() {
 
     students.forEach(s => {
       const sState = state.students[s.mssv];
-      if (sState && sState.isNonMember) nonMemberCount++;
-      else if (sState && sState.examEvidence) examSubmittedCount++;
+      if (sState && sState.isNonMember) {
+        nonMemberCount++;
+      } else if (sState) {
+        const exams = getStudentExams(sState);
+        if (Object.keys(exams).length > 0) examSubmittedCount++;
+      }
     });
 
     const doanVienCount = siso - nonMemberCount;
@@ -1834,16 +2017,28 @@ function exportClassRosterCSV(lopCode) {
   const khoa = classInfo ? classInfo.khoa : '';
 
   let csv = '﻿';
-  csv += 'STT,Khóa,Mã lớp,MSSV,Họ và tên,Giới tính,Ngày sinh,Đối tượng,Trạng thái thi Nghị quyết,Thời gian nộp minh chứng,Ghi chú\n';
+  csv += 'STT,Khóa,Mã lớp,MSSV,Họ và tên,Giới tính,Ngày sinh,Đối tượng,Số nội dung đã thi,Chi tiết các cuộc thi đã nộp minh chứng,Thời gian nộp gần nhất,Ghi chú\n';
 
   students.forEach((s, idx) => {
     const sState = state.students[s.mssv] || {};
     const isNon = !!sState.isNonMember;
-    const hasExam = !isNon && !!sState.examEvidence;
+    const exams = getStudentExams(sState);
+    const submittedKeys = Object.keys(exams);
+    const count = submittedKeys.length;
     const doiTuong = isNon ? 'Chưa kết nạp Đoàn (Miễn thi)' : 'Đoàn viên';
-    const thiStatus = isNon ? 'Miễn thi' : (hasExam ? 'Đã nộp minh chứng' : 'Chưa nộp minh chứng');
-    const time = hasExam ? (sState.examEvidence.timestamp || '') : '';
-    const note = hasExam ? (sState.examEvidence.note || '') : '';
+
+    let countStr = isNon ? 'Miễn thi' : (count + ' / 5 nội dung');
+    let detailStr = 'Chưa nộp';
+    let time = '';
+    let notes = '';
+
+    if (isNon) {
+      detailStr = 'Miễn thi';
+    } else if (count > 0) {
+      detailStr = submittedKeys.map(k => (exams[k].shortTitle || k) + (exams[k].note ? ' [' + exams[k].note + ']' : '')).join('; ');
+      time = exams[submittedKeys[0]].timestamp || '';
+      notes = submittedKeys.map(k => exams[k].note).filter(Boolean).join('; ');
+    }
 
     const row = [
       idx + 1,
@@ -1854,9 +2049,10 @@ function exportClassRosterCSV(lopCode) {
       '"' + s.phai + '"',
       '"' + (s.ngaysinh || '') + '"',
       '"' + doiTuong + '"',
-      '"' + thiStatus + '"',
+      '"' + countStr + '"',
+      '"' + detailStr + '"',
       '"' + time + '"',
-      '"' + note + '"'
+      '"' + notes + '"'
     ];
     csv += row.join(',') + '\n';
   });
@@ -1876,7 +2072,7 @@ function exportClassRosterCSV(lopCode) {
 function exportAdminFullCSV() {
   const classes = (typeof APP_DATA !== 'undefined' && APP_DATA.classes) ? APP_DATA.classes : [];
   let csv = '﻿';
-  csv += 'STT,Khóa,Mã lớp,MSSV,Họ và tên,Giới tính,Ngày sinh,Đối tượng,Trạng thái thi Nghị quyết,Thời gian nộp minh chứng,Bí thư lớp,Trạng thái Zalo Bí thư\n';
+  csv += 'STT,Khóa,Mã lớp,MSSV,Họ và tên,Giới tính,Ngày sinh,Đối tượng,Số nội dung đã thi,Chi tiết các cuộc thi đã nộp,Thời gian nộp,Bí thư lớp,Trạng thái Zalo Bí thư\n';
 
   let stt = 1;
   classes.forEach(c => {
@@ -1888,10 +2084,21 @@ function exportAdminFullCSV() {
     students.forEach(s => {
       const sState = state.students[s.mssv] || {};
       const isNon = !!sState.isNonMember;
-      const hasExam = !isNon && !!sState.examEvidence;
+      const exams = getStudentExams(sState);
+      const submittedKeys = Object.keys(exams);
+      const count = submittedKeys.length;
       const doiTuong = isNon ? 'Chưa kết nạp Đoàn (Miễn thi)' : 'Đoàn viên';
-      const thiStatus = isNon ? 'Miễn thi' : (hasExam ? 'Đã nộp minh chứng' : 'Chưa nộp minh chứng');
-      const time = hasExam ? (sState.examEvidence.timestamp || '') : '';
+
+      let countStr = isNon ? 'Miễn thi' : (count + ' / 5 nội dung');
+      let detailStr = 'Chưa nộp';
+      let time = '';
+
+      if (isNon) {
+        detailStr = 'Miễn thi';
+      } else if (count > 0) {
+        detailStr = submittedKeys.map(k => (exams[k].shortTitle || k) + (exams[k].note ? ' [' + exams[k].note + ']' : '')).join('; ');
+        time = exams[submittedKeys[0]].timestamp || '';
+      }
 
       const row = [
         stt++,
@@ -1902,7 +2109,8 @@ function exportAdminFullCSV() {
         '"' + s.phai + '"',
         '"' + (s.ngaysinh || '') + '"',
         '"' + doiTuong + '"',
-        '"' + thiStatus + '"',
+        '"' + countStr + '"',
+        '"' + detailStr + '"',
         '"' + time + '"',
         '"' + bithuName + '"',
         '"' + hasZalo + '"'
@@ -2274,6 +2482,13 @@ function setupExamModalControls() {
     });
   }
 
+  const selectTopic = document.getElementById('exam-select-topic');
+  if (selectTopic) {
+    selectTopic.addEventListener('change', () => {
+      updateExamModalTopicView(selectTopic.value);
+    });
+  }
+
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -2286,6 +2501,9 @@ function setupExamModalControls() {
       const mssv = currentExamTarget.mssv;
       const lop = currentExamTarget.lop;
       const hoten = currentExamTarget.hoten;
+      const topicId = selectTopic ? selectTopic.value : 'HCM_2026_DVTN';
+      const topicObj = EXAM_TOPICS.find(t => t.id === topicId) || EXAM_TOPICS[3];
+      const topicName = topicObj.fullTitle;
       const note = document.getElementById('exam-input-note')?.value.trim() || '';
 
       const state = getClassState(lop);
@@ -2294,11 +2512,19 @@ function setupExamModalControls() {
 
       if (!state.students[mssv]) state.students[mssv] = {};
       state.students[mssv].isNonMember = false;
-      state.students[mssv].examEvidence = {
+      if (!state.students[mssv].exams) state.students[mssv].exams = {};
+
+      state.students[mssv].exams[topicId] = {
+        topicCode: topicId,
+        topicName: topicName,
+        shortTitle: topicObj.shortTitle,
         imageBase64: currentExamImageBase64,
         timestamp: timeStr,
         note: note
       };
+
+      // Giữ con trỏ examEvidence cho tính tương thích
+      state.students[mssv].examEvidence = state.students[mssv].exams[topicId];
       saveClassState(lop, state);
 
       sendToGoogleAppsScript({
@@ -2307,7 +2533,8 @@ function setupExamModalControls() {
         khoa: (currentAuth && currentAuth.khoa) || ('Khóa ' + lop.substring(0, 2)),
         hoten: hoten,
         mssv: mssv,
-        loaiMinhChung: 'Thi Nghị quyết App TNVN',
+        topicCode: topicId,
+        loaiMinhChung: topicName,
         doiTuong: 'Đoàn viên',
         imageBase64: currentExamImageBase64,
         imageType: 'image/jpeg',
@@ -2315,8 +2542,9 @@ function setupExamModalControls() {
       });
 
       closeExamModal();
-      showToast('🎉 Đã lưu minh chứng thi cho sinh viên ' + hoten + ' (' + mssv + ') thành công!', 'success');
+      showToast('🎉 Đã lưu minh chứng "' + topicObj.shortTitle + '" cho ' + hoten + ' (' + mssv + ') thành công!', 'success');
       renderClassPortal(lop);
     });
   }
 }
+
