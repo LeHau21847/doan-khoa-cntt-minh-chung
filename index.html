@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Đoàn Khoa CNTT - Tiếp Nhận Minh Chứng Tham Gia Nhóm Zalo & App Thanh Niên Việt Nam</title>
   <meta name="description" content="Trang web công khai triển khai thông tin và tiếp nhận minh chứng tham gia nhóm Zalo Bí thư, cài đặt và sử dụng App Thanh niên Việt Nam theo Công văn 73-CV/ĐTN - Đoàn Khoa Công nghệ Thông tin, Trường Đại học Lạc Hồng.">
   
@@ -36,14 +36,16 @@
       <div class="nav-actions">
         <div id="nav-auth-container" class="nav-auth-container">
           <button class="btn btn-primary btn-sm" id="btn-show-login">
-            🔐 Đăng nhập (Admin / Lớp)
+            <span class="desktop-text">🔐 Đăng nhập (Admin / Lớp)</span>
+            <span class="mobile-text">🔐 Đăng nhập</span>
           </button>
         </div>
         <button class="btn btn-outline btn-sm" id="btn-open-google-modal" title="Cấu hình Google Drive & Sheets" style="display: none;">
           ⚙️ Drive
         </button>
         <a href="https://zalo.me/g/9scl8scbk5rsi3dk83gk" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" id="btn-nav-zalo">
-          📲 Vào nhóm Zalo
+          <span class="desktop-text">📲 Vào nhóm Zalo</span>
+          <span class="mobile-text">📲 Zalo</span>
         </a>
       </div>
     </div>
@@ -248,6 +250,10 @@
           </div>
 
           <!-- Students Roster Table -->
+          <div class="table-scroll-hint">
+            <span>📋 <b>Danh sách lớp</b> (Kéo ngang xem đủ thông tin)</span>
+            <span>↔️ Vuốt ngang</span>
+          </div>
           <div class="students-table-wrapper">
             <table class="students-table" id="students-table">
               <thead>
@@ -336,6 +342,10 @@
         </div>
 
         <div class="panel-body">
+          <div class="table-scroll-hint">
+            <span>📊 <b>Bảng theo dõi 56 lớp</b> (Kéo ngang xem đủ thông tin)</span>
+            <span>↔️ Vuốt ngang</span>
+          </div>
           <div class="students-table-wrapper">
             <table class="students-table" id="admin-classes-table">
               <thead>

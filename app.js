@@ -1614,15 +1614,15 @@ function updateNavAuthUI() {
   if (!container) return;
 
   if (!currentAuth) {
-    container.innerHTML = '<button class="btn btn-primary btn-sm" id="btn-show-login">🔐 Đăng nhập (Admin / Lớp)</button>';
+    container.innerHTML = '<button class="btn btn-primary btn-sm" id="btn-show-login"><span class="desktop-text">🔐 Đăng nhập (Admin / Lớp)</span><span class="mobile-text">🔐 Đăng nhập</span></button>';
     const btn = document.getElementById('btn-show-login');
     if (btn) btn.addEventListener('click', openLoginModal);
   } else if (currentAuth.role === 'admin') {
-    container.innerHTML = '<div class="logged-user-tag"><span style="color:#c084fc; font-weight:700;">👑 Admin Khoa</span> <button class="btn btn-outline btn-xs" id="btn-nav-logout" title="Đăng xuất">🚪 Thoát</button></div>';
+    container.innerHTML = '<div class="logged-user-tag"><span style="color:#c084fc; font-weight:700;"><span class="desktop-text">👑 Admin Khoa</span><span class="mobile-text">👑 Admin</span></span> <button class="btn btn-outline btn-xs" id="btn-nav-logout" title="Đăng xuất">🚪 Thoát</button></div>';
     const btn = document.getElementById('btn-nav-logout');
     if (btn) btn.addEventListener('click', handleLogout);
   } else if (currentAuth.role === 'class') {
-    container.innerHTML = '<div class="logged-user-tag"><span style="color:#38bdf8; font-weight:700;">🎓 Lớp ' + currentAuth.lop + '</span> <button class="btn btn-outline btn-xs" id="btn-nav-logout" title="Đăng xuất">🚪 Thoát</button></div>';
+    container.innerHTML = '<div class="logged-user-tag"><span style="color:#38bdf8; font-weight:700;"><span class="desktop-text">🎓 Lớp ' + currentAuth.lop + '</span><span class="mobile-text">🎓 ' + currentAuth.lop + '</span></span> <button class="btn btn-outline btn-xs" id="btn-nav-logout" title="Đăng xuất">🚪 Thoát</button></div>';
     const btn = document.getElementById('btn-nav-logout');
     if (btn) btn.addEventListener('click', handleLogout);
   }
