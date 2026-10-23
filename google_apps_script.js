@@ -81,6 +81,7 @@ function doPost(e) {
     var mssv = (data.mssv || "").trim();
     var sdt = (data.sdt || "").trim();
     var loaiMinhChung = (data.loaiMinhChung || "").trim();
+    var doiTuong = (data.doiTuong || (data.isNonMember ? "Chưa kết nạp Đoàn" : "Đoàn viên")).trim();
     var ghiChu = (data.ghiChu || "").trim();
     
     if (!khoa && maLop.length >= 2) {
@@ -105,7 +106,14 @@ function doPost(e) {
       var decodedBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), contentType);
       
       var timeStampStr = Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd_HHmmss");
-      fileName = "[" + maLop + "]_" + (mssv ? mssv + "_" : "") + removeVietnameseAccents(hoten).replace(/\s+/g, "") + "_" + loaiMinhChung + "_" + timeStampStr + ".jpg";
+      var safeName = removeVietnameseAccents(hoten).replace(/\s+/g, "");
+      
+      if (loaiMinhChung.indexOf("Zalo") >= 0 || loaiMinhChung === "ZALO_BITHU") {
+        fileName = "[" + maLop + "]_BITHU_ZALO_" + (safeName || "BiThu") + "_" + timeStampStr + ".jpg";
+      } else {
+        fileName = "[" + maLop + "]_" + (mssv ? mssv + "_" : "") + (safeName || "SinhVien") + "_ThiNghiQuyet_" + timeStampStr + ".jpg";
+      }
+      
       decodedBlob.setName(fileName);
       
       var file = lopFolder.createFile(decodedBlob);
@@ -126,6 +134,7 @@ function doPost(e) {
       hoten,
       sdt,
       loaiMinhChung,
+      doiTuong,
       fileUrl ? '=HYPERLINK("' + fileUrl + '", "Xem ảnh minh chứng")' : "Không có ảnh",
       '=HYPERLINK("' + lopFolder.getUrl() + '", "Mở thư mục lớp ' + maLop + '")',
       fileName,
@@ -138,6 +147,7 @@ function doPost(e) {
       message: "Đã lưu thành công vào thư mục lớp " + maLop + " trên Google Drive!",
       fileUrl: fileUrl,
       folderUrl: lopFolder.getUrl(),
+      fileName: fileName,
       timestamp: nowFormatted
     })).setMimeType(ContentService.MimeType.JSON);
     
@@ -196,13 +206,14 @@ function getOrCreateSpreadsheet(name, parentFolder) {
       "Họ và tên",
       "Số điện thoại / Zalo",
       "Loại minh chứng",
+      "Đối tượng (Đoàn viên / Chưa kết nạp)",
       "Liên kết ảnh Drive",
       "Thư mục lớp trên Drive",
       "Tên file",
       "Direct Image URL",
       "Ghi chú"
     ]);
-    s1.getRange("A1:L1").setBackground("#1f497d").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center");
+    s1.getRange("A1:M1").setBackground("#1f497d").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center");
     s1.setFrozenRows(1);
     
     // Tạo Sheet 2: Danh sách 56 lớp theo dõi

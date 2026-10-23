@@ -1086,6 +1086,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   renderClassesGrid();
   renderDashboard();
+  initAuthAndPortals();
 
   // Export buttons
   const btnExportCsv = document.getElementById("btn-export-csv");
@@ -1093,3 +1094,1086 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnExportCsv) btnExportCsv.addEventListener("click", exportToCSV);
   if (btnExportJson) btnExportJson.addEventListener("click", exportToJSON);
 });
+
+// =========================================================================
+// 12. PORTAL & AUTHENTICATION MANAGER (ADMIN & 56 CLASS ACCOUNTS)
+// =========================================================================
+let currentAuth = null;
+let viewingAsAdmin = false;
+let currentStudentFilter = 'ALL';
+let currentStudentSearch = '';
+let currentExamTarget = null;
+let currentZaloImageBase64 = null;
+let currentExamImageBase64 = null;
+
+function getClassState(lopCode) {
+  try {
+    const raw = localStorage.getItem('class_state_' + lopCode);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading class state:', e);
+  }
+  return {
+    zaloEvidence: null,
+    students: {}
+  };
+}
+
+function saveClassState(lopCode, state) {
+  try {
+    localStorage.setItem('class_state_' + lopCode, JSON.stringify(state));
+  } catch (e) {
+    console.error('Error saving class state:', e);
+  }
+}
+
+function sendToGoogleAppsScript(payload) {
+  const webhookUrl = localStorage.getItem('gas_webhook_url') || (typeof APP_DATA !== 'undefined' && APP_DATA.config && APP_DATA.config.googleAppsScriptUrl) || '';
+  if (!webhookUrl) return;
+  try {
+    fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    }).then(() => {
+      console.log('Background sync to GAS successful:', payload.loaiMinhChung);
+    }).catch(err => {
+      console.warn('Background sync error:', err);
+    });
+  } catch (err) {
+    console.warn('Could not post to GAS:', err);
+  }
+}
+
+function updateNavAuthUI() {
+  const container = document.getElementById('nav-auth-container');
+  if (!container) return;
+
+  if (!currentAuth) {
+    container.innerHTML = '<button class="btn btn-primary btn-sm" id="btn-show-login">🔐 Đăng nhập (Admin / Lớp)</button>';
+    const btn = document.getElementById('btn-show-login');
+    if (btn) btn.addEventListener('click', openLoginModal);
+  } else if (currentAuth.role === 'admin') {
+    container.innerHTML = '<div class="logged-user-tag"><span style="color:#c084fc; font-weight:700;">👑 Admin Khoa</span> <button class="btn btn-outline btn-xs" id="btn-nav-logout" title="Đăng xuất">🚪 Thoát</button></div>';
+    const btn = document.getElementById('btn-nav-logout');
+    if (btn) btn.addEventListener('click', handleLogout);
+  } else if (currentAuth.role === 'class') {
+    container.innerHTML = '<div class="logged-user-tag"><span style="color:#38bdf8; font-weight:700;">🎓 Lớp ' + currentAuth.lop + '</span> <button class="btn btn-outline btn-xs" id="btn-nav-logout" title="Đăng xuất">🚪 Thoát</button></div>';
+    const btn = document.getElementById('btn-nav-logout');
+    if (btn) btn.addEventListener('click', handleLogout);
+  }
+}
+
+function openLoginModal() {
+  const modal = document.getElementById('login-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeLoginModal() {
+  const modal = document.getElementById('login-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleLoginAsClass(khoa, lop, pass) {
+  currentAuth = {
+    role: 'class',
+    lop: lop,
+    khoa: khoa,
+    name: 'Chi đoàn ' + lop
+  };
+  viewingAsAdmin = false;
+  localStorage.setItem('auth_session', JSON.stringify(currentAuth));
+
+  updateNavAuthUI();
+  closeLoginModal();
+
+  const adminSec = document.getElementById('admin-portal-section');
+  const classSec = document.getElementById('class-portal-section');
+  if (adminSec) adminSec.style.display = 'none';
+  if (classSec) classSec.style.display = 'block';
+
+  renderClassPortal(lop);
+  showToast('🎉 Chào mừng Bí thư / Cán sự Chi đoàn ' + lop + '!', 'success');
+
+  if (classSec) classSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function handleLoginAsAdmin() {
+  currentAuth = {
+    role: 'admin',
+    name: 'Ban Thường vụ Đoàn Khoa'
+  };
+  viewingAsAdmin = false;
+  localStorage.setItem('auth_session', JSON.stringify(currentAuth));
+
+  updateNavAuthUI();
+  closeLoginModal();
+
+  const classSec = document.getElementById('class-portal-section');
+  const adminSec = document.getElementById('admin-portal-section');
+  if (classSec) classSec.style.display = 'none';
+  if (adminSec) adminSec.style.display = 'block';
+
+  renderAdminPortal();
+  showToast('👑 Chào mừng Quản trị viên Đoàn Khoa CNTT!', 'success');
+
+  if (adminSec) adminSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function handleLogout() {
+  currentAuth = null;
+  viewingAsAdmin = false;
+  localStorage.removeItem('auth_session');
+
+  updateNavAuthUI();
+
+  const classSec = document.getElementById('class-portal-section');
+  const adminSec = document.getElementById('admin-portal-section');
+  if (classSec) classSec.style.display = 'none';
+  if (adminSec) adminSec.style.display = 'none';
+
+  showToast('Đã đăng xuất tài khoản thành công!', 'info');
+}
+
+function renderClassPortal(lopCode) {
+  const classInfo = (typeof APP_DATA !== 'undefined' && APP_DATA.classes) ? APP_DATA.classes.find(c => c.lop === lopCode) : null;
+  const students = (typeof CLASS_STUDENTS_DATA !== 'undefined' && CLASS_STUDENTS_DATA[lopCode]) ? CLASS_STUDENTS_DATA[lopCode] : [];
+  const state = getClassState(lopCode);
+
+  const totalStudents = students.length;
+  let nonMemberCount = 0;
+  let examSubmittedCount = 0;
+
+  students.forEach(s => {
+    const sState = state.students[s.mssv];
+    if (sState && sState.isNonMember) {
+      nonMemberCount++;
+    } else if (sState && sState.examEvidence) {
+      examSubmittedCount++;
+    }
+  });
+
+  const doanVienCount = totalStudents - nonMemberCount;
+  const percent = doanVienCount > 0 ? Math.round((examSubmittedCount / doanVienCount) * 100) : 0;
+  const hasZalo = !!state.zaloEvidence;
+
+  // Header
+  const elBadge = document.getElementById('portal-class-code');
+  const elTitle = document.getElementById('portal-class-title');
+  const elDesc = document.getElementById('portal-class-desc');
+  if (elBadge) elBadge.textContent = lopCode;
+  if (elTitle) elTitle.textContent = 'Không Gian Quản Lý Chi Đoàn ' + lopCode;
+  if (elDesc) elDesc.textContent = (classInfo ? classInfo.khoa : '') + ' • Sĩ số: ' + totalStudents + ' sinh viên Khoa CNTT';
+
+  // Secretary Info
+  const elBithuName = document.getElementById('portal-bithu-name');
+  const elBithuContact = document.getElementById('portal-bithu-contact');
+  if (classInfo && classInfo.bithu) {
+    if (elBithuName) elBithuName.textContent = classInfo.bithu.hoten;
+    if (elBithuContact) elBithuContact.textContent = 'SĐT: ' + (classInfo.bithu.phone || 'Chưa cập nhật') + ' • MSSV: ' + (classInfo.bithu.mssv || 'Chưa cập nhật');
+  } else {
+    if (elBithuName) elBithuName.textContent = 'Chưa có Bí thư Chi đoàn';
+    if (elBithuContact) elBithuContact.textContent = 'Cán sự lớp phụ trách nộp thay';
+  }
+
+  // Admin banner if viewing as admin
+  const existingAdminBar = document.getElementById('admin-impersonate-bar');
+  if (existingAdminBar) existingAdminBar.remove();
+
+  if (viewingAsAdmin) {
+    const headerCard = document.querySelector('#class-portal-section .portal-header-card');
+    if (headerCard) {
+      const bar = document.createElement('div');
+      bar.id = 'admin-impersonate-bar';
+      bar.style.cssText = 'width: 100%; background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px;';
+      bar.innerHTML = '<span>👑 Đang xem và quản lý dưới quyền <strong>Admin Đoàn Khoa</strong></span> <button class="btn btn-primary btn-xs" id="btn-return-admin">⬅️ Trở lại Bảng Quản Trị Admin</button>';
+      headerCard.appendChild(bar);
+      const btnRet = document.getElementById('btn-return-admin');
+      if (btnRet) {
+        btnRet.addEventListener('click', () => {
+          viewingAsAdmin = false;
+          const classSec = document.getElementById('class-portal-section');
+          const adminSec = document.getElementById('admin-portal-section');
+          if (classSec) classSec.style.display = 'none';
+          if (adminSec) {
+            adminSec.style.display = 'block';
+            renderAdminPortal();
+            adminSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      }
+    }
+  }
+
+  // KPIs
+  const elTot = document.getElementById('kpi-total-students');
+  const elDv = document.getElementById('kpi-doanvien-count');
+  const elNon = document.getElementById('kpi-nonmember-count');
+  const elExam = document.getElementById('kpi-exam-submitted-count');
+  const elPct = document.getElementById('kpi-exam-percentage');
+  if (elTot) elTot.textContent = totalStudents;
+  if (elDv) elDv.textContent = doanVienCount;
+  if (elNon) elNon.textContent = nonMemberCount;
+  if (elExam) elExam.textContent = examSubmittedCount;
+  if (elPct) elPct.textContent = percent + '%';
+
+  // Zalo Evidence Box
+  const previewBox = document.getElementById('zalo-evidence-preview-box');
+  const promptBox = document.getElementById('zalo-upload-prompt-box');
+  const zaloBadge = document.getElementById('zalo-status-badge');
+  const previewImg = document.getElementById('zalo-preview-img');
+  const previewTime = document.getElementById('zalo-preview-time');
+
+  if (hasZalo) {
+    if (previewBox) previewBox.style.display = 'flex';
+    if (promptBox) promptBox.style.display = 'none';
+    if (previewImg) previewImg.src = state.zaloEvidence.imageBase64 || state.zaloEvidence.fileUrl || '';
+    if (previewTime) previewTime.textContent = 'Thời gian nộp: ' + (state.zaloEvidence.timestamp || '') + (state.zaloEvidence.submitterName ? ' • Người nộp: ' + state.zaloEvidence.submitterName : '');
+    if (zaloBadge) {
+      zaloBadge.className = 'status-badge badge-success';
+      zaloBadge.textContent = '✅ Đã hoàn thành nộp minh chứng Zalo Bí thư';
+    }
+  } else {
+    if (previewBox) previewBox.style.display = 'none';
+    if (promptBox) promptBox.style.display = 'block';
+    if (zaloBadge) {
+      zaloBadge.className = 'status-badge badge-pending';
+      zaloBadge.textContent = '⏳ Chưa có minh chứng Zalo Bí thư';
+    }
+  }
+
+  // View full Zalo image
+  const btnViewZaloFull = document.getElementById('btn-view-zalo-full');
+  if (btnViewZaloFull) {
+    btnViewZaloFull.onclick = () => {
+      if (state.zaloEvidence && (state.zaloEvidence.imageBase64 || state.zaloEvidence.fileUrl)) {
+        openLightbox(state.zaloEvidence.imageBase64 || state.zaloEvidence.fileUrl, 'Minh chứng Zalo Bí thư Chi đoàn ' + lopCode);
+      }
+    };
+  }
+
+  // Re-upload Zalo
+  const btnReuploadZalo = document.getElementById('btn-reupload-zalo');
+  if (btnReuploadZalo) {
+    btnReuploadZalo.onclick = () => {
+      openZaloModal(lopCode, classInfo);
+    };
+  }
+
+  // Open Zalo Modal from prompt
+  const btnOpenZaloUpload = document.getElementById('btn-open-zalo-upload');
+  if (btnOpenZaloUpload) {
+    btnOpenZaloUpload.onclick = () => {
+      openZaloModal(lopCode, classInfo);
+    };
+  }
+
+  // Tab counts
+  const elTabAll = document.getElementById('tab-cnt-all');
+  const elTabDv = document.getElementById('tab-cnt-dv');
+  const elTabNon = document.getElementById('tab-cnt-non');
+  const elTabDone = document.getElementById('tab-cnt-done');
+  const elTabPending = document.getElementById('tab-cnt-pending');
+
+  if (elTabAll) elTabAll.textContent = totalStudents;
+  if (elTabDv) elTabDv.textContent = doanVienCount;
+  if (elTabNon) elTabNon.textContent = nonMemberCount;
+  if (elTabDone) elTabDone.textContent = examSubmittedCount;
+  if (elTabPending) elTabPending.textContent = doanVienCount - examSubmittedCount;
+
+  // Filter students
+  renderStudentsTable(lopCode, students, state);
+}
+
+function renderStudentsTable(lopCode, students, state) {
+  const tbody = document.getElementById('students-table-body');
+  if (!tbody) return;
+
+  const query = (currentStudentSearch || '').toLowerCase().trim();
+  const filter = currentStudentFilter || 'ALL';
+
+  const filtered = students.filter(s => {
+    const sState = state.students[s.mssv] || {};
+    const isNon = !!sState.isNonMember;
+    const hasExam = !isNon && !!sState.examEvidence;
+
+    if (filter === 'DOAN_VIEN' && isNon) return false;
+    if (filter === 'NON_MEMBER' && !isNon) return false;
+    if (filter === 'EXAM_DONE' && (!hasExam || isNon)) return false;
+    if (filter === 'EXAM_NOT_YET' && (hasExam || isNon)) return false;
+
+    if (query) {
+      const matchName = s.hoten.toLowerCase().includes(query);
+      const matchMssv = s.mssv.toLowerCase().includes(query);
+      if (!matchName && !matchMssv) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">Không tìm thấy sinh viên nào phù hợp với bộ lọc.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  filtered.forEach((s, idx) => {
+    const sState = state.students[s.mssv] || {};
+    const isNon = !!sState.isNonMember;
+    const hasExam = !isNon && !!sState.examEvidence;
+
+    html += '<tr class="' + (isNon ? 'row-nonmember' : '') + '">';
+    html += '<td>' + (idx + 1) + '</td>';
+    html += '<td><code>' + s.mssv + '</code></td>';
+    html += '<td><strong>' + s.hoten + '</strong></td>';
+    html += '<td>' + s.phai + '</td>';
+    html += '<td>' + (s.ngaysinh || '--') + '</td>';
+
+    // Column: Doan vien vs Non-member
+    html += '<td>';
+    html += '<label class="toggle-member-label" title="Nhấp để đánh dấu Chưa kết nạp Đoàn">';
+    html += '<input type="checkbox" class="chk-toggle-nonmember" data-mssv="' + s.mssv + '" ' + (isNon ? 'checked' : '') + '> ';
+    html += '<span class="' + (isNon ? 'badge-nonmember' : 'badge-doanvien') + '">';
+    html += isNon ? '⚪ Chưa vào Đoàn' : '🎗️ Đoàn viên';
+    html += '</span></label>';
+    html += '</td>';
+
+    // Column: Exam Status
+    html += '<td>';
+    if (isNon) {
+      html += '<span class="badge-exam-exempt">⚪ Miễn thi (Chưa vào Đoàn)</span>';
+    } else if (hasExam) {
+      html += '<span class="badge-exam-done">✅ Đã nộp minh chứng</span>';
+    } else {
+      html += '<span class="badge-exam-pending">❌ Chưa nộp minh chứng</span>';
+    }
+    html += '</td>';
+
+    // Column: Action
+    html += '<td style="text-align: center;">';
+    if (isNon) {
+      html += '<span style="font-size:0.75rem; color:var(--text-muted);">Không bắt buộc</span>';
+    } else if (hasExam) {
+      html += '<div style="display:flex; gap:4px; justify-content:center;">';
+      html += '<button class="btn btn-outline btn-xs btn-view-exam-photo" data-mssv="' + s.mssv + '" title="Xem ảnh minh chứng">🔍 Xem</button>';
+      html += '<button class="btn btn-outline btn-xs btn-open-student-modal" data-mssv="' + s.mssv + '" data-name="' + s.hoten + '" title="Nộp lại ảnh khác">🔄 Đổi</button>';
+      html += '</div>';
+    } else {
+      html += '<button class="btn btn-primary btn-xs btn-open-student-modal" data-mssv="' + s.mssv + '" data-name="' + s.hoten + '">📤 Nộp thi</button>';
+    }
+    html += '</td>';
+    html += '</tr>';
+  });
+
+  tbody.innerHTML = html;
+
+  // Attach toggle listeners
+  tbody.querySelectorAll('.chk-toggle-nonmember').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      const mssv = e.target.getAttribute('data-mssv');
+      const isChecked = e.target.checked;
+      if (!state.students[mssv]) state.students[mssv] = {};
+      state.students[mssv].isNonMember = isChecked;
+      saveClassState(lopCode, state);
+
+      const targetStudent = students.find(x => x.mssv === mssv);
+      const studentName = targetStudent ? targetStudent.hoten : mssv;
+      showToast(isChecked ? ('Đã đánh dấu sinh viên ' + studentName + ' là Chưa kết nạp Đoàn (Miễn thi)') : ('Đã chuyển sinh viên ' + studentName + ' thành Đoàn viên (Bắt buộc thi)'), 'info');
+
+      renderClassPortal(lopCode);
+
+      // Async sync to GAS
+      sendToGoogleAppsScript({
+        action: 'update_doan_vien_status',
+        lop: lopCode,
+        mssv: mssv,
+        hoten: studentName,
+        isNonMember: isChecked,
+        doiTuong: isChecked ? 'Chưa kết nạp Đoàn' : 'Đoàn viên'
+      });
+    });
+  });
+
+  // Attach open student exam modal
+  tbody.querySelectorAll('.btn-open-student-modal').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mssv = btn.getAttribute('data-mssv');
+      const name = btn.getAttribute('data-name');
+      openExamModal(lopCode, mssv, name);
+    });
+  });
+
+  // Attach view exam photo
+  tbody.querySelectorAll('.btn-view-exam-photo').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mssv = btn.getAttribute('data-mssv');
+      const sState = state.students[mssv];
+      if (sState && sState.examEvidence && (sState.examEvidence.imageBase64 || sState.examEvidence.fileUrl)) {
+        openLightbox(sState.examEvidence.imageBase64 || sState.examEvidence.fileUrl, 'Minh chứng Thi Nghị quyết - ' + (students.find(x => x.mssv === mssv)?.hoten || mssv));
+      }
+    });
+  });
+}
+
+function openZaloModal(lopCode, classInfo) {
+  const modal = document.getElementById('modal-zalo-evidence');
+  if (!modal) return;
+
+  const elLop = document.getElementById('modal-zalo-lop-code');
+  const inputHoten = document.getElementById('input-zalo-hoten');
+  const inputSdt = document.getElementById('input-zalo-sdt');
+
+  if (elLop) elLop.textContent = lopCode;
+  if (classInfo && classInfo.bithu) {
+    if (inputHoten) inputHoten.value = classInfo.bithu.hoten || '';
+    if (inputSdt) inputSdt.value = classInfo.bithu.phone || '';
+  }
+
+  currentZaloImageBase64 = null;
+  const prevBox = document.getElementById('zalo-preview-container');
+  const fileInput = document.getElementById('zalo-file-input');
+  if (prevBox) prevBox.style.display = 'none';
+  if (fileInput) fileInput.value = '';
+
+  modal.classList.add('active');
+}
+
+function closeZaloModal() {
+  const modal = document.getElementById('modal-zalo-evidence');
+  if (modal) modal.classList.remove('active');
+}
+
+function openExamModal(lopCode, mssv, name) {
+  const modal = document.getElementById('modal-exam-evidence');
+  if (!modal) return;
+
+  currentExamTarget = { mssv: mssv, hoten: name, lop: lopCode };
+
+  const elName = document.getElementById('exam-target-name');
+  const elInfo = document.getElementById('exam-target-info');
+  const hiddenMssv = document.getElementById('exam-target-mssv');
+  const hiddenLop = document.getElementById('exam-target-lop');
+
+  if (elName) elName.textContent = name;
+  if (elInfo) elInfo.textContent = 'MSSV: ' + mssv + ' • Chi đoàn: ' + lopCode;
+  if (hiddenMssv) hiddenMssv.value = mssv;
+  if (hiddenLop) hiddenLop.value = lopCode;
+
+  currentExamImageBase64 = null;
+  const prevBox = document.getElementById('exam-preview-container');
+  const fileInput = document.getElementById('exam-file-input');
+  const noteInput = document.getElementById('exam-input-note');
+  if (prevBox) prevBox.style.display = 'none';
+  if (fileInput) fileInput.value = '';
+  if (noteInput) noteInput.value = '';
+
+  modal.classList.add('active');
+}
+
+function closeExamModal() {
+  const modal = document.getElementById('modal-exam-evidence');
+  if (modal) modal.classList.remove('active');
+}
+
+function openLightbox(imgSrc, title) {
+  const modal = document.getElementById('lightbox-modal');
+  const img = document.getElementById('lightbox-img');
+  const cap = document.getElementById('lightbox-caption');
+  const t = document.getElementById('lightbox-title');
+  if (!modal || !img) return;
+
+  img.src = imgSrc;
+  if (t) t.textContent = title || 'Ảnh Minh Chứng';
+  if (cap) cap.textContent = title || '';
+  modal.classList.add('active');
+}
+
+function renderAdminPortal() {
+  const classes = (typeof APP_DATA !== 'undefined' && APP_DATA.classes) ? APP_DATA.classes : [];
+  const tbody = document.getElementById('admin-classes-table-body');
+  if (!tbody) return;
+
+  let totalStudentsAll = 0;
+  let totalNonMembersAll = 0;
+  let totalDoanVienAll = 0;
+  let totalExamSubmittedAll = 0;
+  let totalZaloCount = 0;
+
+  const searchClass = (document.getElementById('admin-search-class')?.value || '').toLowerCase().trim();
+  const filterKhoa = document.getElementById('admin-filter-khoa')?.value || 'ALL';
+
+  const classRowsData = [];
+
+  classes.forEach(c => {
+    const students = (typeof CLASS_STUDENTS_DATA !== 'undefined' && CLASS_STUDENTS_DATA[c.lop]) ? CLASS_STUDENTS_DATA[c.lop] : [];
+    const state = getClassState(c.lop);
+
+    const siso = students.length;
+    let nonMemberCount = 0;
+    let examSubmittedCount = 0;
+
+    students.forEach(s => {
+      const sState = state.students[s.mssv];
+      if (sState && sState.isNonMember) nonMemberCount++;
+      else if (sState && sState.examEvidence) examSubmittedCount++;
+    });
+
+    const doanVienCount = siso - nonMemberCount;
+    const examPercent = doanVienCount > 0 ? Math.round((examSubmittedCount / doanVienCount) * 100) : 0;
+    const hasZalo = !!state.zaloEvidence;
+
+    totalStudentsAll += siso;
+    totalNonMembersAll += nonMemberCount;
+    totalDoanVienAll += doanVienCount;
+    totalExamSubmittedAll += examSubmittedCount;
+    if (hasZalo) totalZaloCount++;
+
+    classRowsData.push({
+      khoa: c.khoa,
+      lop: c.lop,
+      siso: siso,
+      bithu: c.bithu ? c.bithu.hoten : 'Chưa có Bí thư',
+      phone: c.bithu ? (c.bithu.phone || '--') : '--',
+      hasZalo: hasZalo,
+      doanVienCount: doanVienCount,
+      nonMemberCount: nonMemberCount,
+      examSubmittedCount: examSubmittedCount,
+      examPercent: examPercent
+    });
+  });
+
+  // Admin KPI Cards
+  const kpiClasses = document.getElementById('admin-kpi-classes');
+  const kpiStudents = document.getElementById('admin-kpi-total-students');
+  const kpiZalo = document.getElementById('admin-kpi-zalo-rate');
+  const kpiNon = document.getElementById('admin-kpi-nonmember-total');
+  const kpiExamRate = document.getElementById('admin-kpi-exam-rate');
+
+  if (kpiClasses) kpiClasses.textContent = classes.length;
+  if (kpiStudents) kpiStudents.textContent = totalStudentsAll.toLocaleString();
+  if (kpiZalo) kpiZalo.textContent = totalZaloCount + ' / ' + classes.length + ' (' + Math.round((totalZaloCount / classes.length) * 100) + '%)';
+  if (kpiNon) kpiNon.textContent = totalNonMembersAll;
+
+  const overallExamPct = totalDoanVienAll > 0 ? Math.round((totalExamSubmittedAll / totalDoanVienAll) * 100) : 0;
+  if (kpiExamRate) kpiExamRate.textContent = totalExamSubmittedAll + ' / ' + totalDoanVienAll + ' (' + overallExamPct + '%)';
+
+  // Filter rows
+  const filtered = classRowsData.filter(r => {
+    if (filterKhoa !== 'ALL' && r.khoa !== filterKhoa) return false;
+    if (searchClass && !r.lop.toLowerCase().includes(searchClass) && !r.bithu.toLowerCase().includes(searchClass)) return false;
+    return true;
+  });
+
+  let html = '';
+  filtered.forEach((r, idx) => {
+    html += '<tr>';
+    html += '<td>' + (idx + 1) + '</td>';
+    html += '<td>' + r.khoa + '</td>';
+    html += '<td><strong>' + r.lop + '</strong></td>';
+    html += '<td>' + r.siso + '</td>';
+    html += '<td>' + (r.bithu !== 'Chưa có Bí thư' ? r.bithu : '<span style="color:#f87171;">Chưa có Bí thư</span>') + '</td>';
+    html += '<td>' + r.phone + '</td>';
+    html += '<td>' + (r.hasZalo ? '<span class="badge-exam-done">✅ Đã nộp</span>' : '<span class="badge-exam-pending">❌ Chưa nộp</span>') + '</td>';
+    html += '<td>' + r.doanVienCount + '</td>';
+    html += '<td>' + (r.nonMemberCount > 0 ? ('<span class="badge-nonmember">' + r.nonMemberCount + '</span>') : '0') + '</td>';
+    html += '<td>' + r.examSubmittedCount + ' / ' + r.doanVienCount + '</td>';
+    html += '<td><strong>' + r.examPercent + '%</strong></td>';
+    html += '<td style="text-align: center;">';
+    html += '<button class="btn btn-primary btn-xs btn-admin-manage-class" data-lop="' + r.lop + '">👉 Vào quản lý</button>';
+    html += '</td>';
+    html += '</tr>';
+  });
+
+  tbody.innerHTML = html;
+
+  tbody.querySelectorAll('.btn-admin-manage-class').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lop = btn.getAttribute('data-lop');
+      viewingAsAdmin = true;
+      const classSec = document.getElementById('class-portal-section');
+      const adminSec = document.getElementById('admin-portal-section');
+      if (adminSec) adminSec.style.display = 'none';
+      if (classSec) {
+        classSec.style.display = 'block';
+        renderClassPortal(lop);
+        classSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+}
+
+function exportClassRosterCSV(lopCode) {
+  const students = (typeof CLASS_STUDENTS_DATA !== 'undefined' && CLASS_STUDENTS_DATA[lopCode]) ? CLASS_STUDENTS_DATA[lopCode] : [];
+  const state = getClassState(lopCode);
+  const classInfo = (typeof APP_DATA !== 'undefined' && APP_DATA.classes) ? APP_DATA.classes.find(c => c.lop === lopCode) : null;
+  const khoa = classInfo ? classInfo.khoa : '';
+
+  let csv = '﻿';
+  csv += 'STT,Khóa,Mã lớp,MSSV,Họ và tên,Giới tính,Ngày sinh,Đối tượng,Trạng thái thi Nghị quyết,Thời gian nộp minh chứng,Ghi chú\n';
+
+  students.forEach((s, idx) => {
+    const sState = state.students[s.mssv] || {};
+    const isNon = !!sState.isNonMember;
+    const hasExam = !isNon && !!sState.examEvidence;
+    const doiTuong = isNon ? 'Chưa kết nạp Đoàn (Miễn thi)' : 'Đoàn viên';
+    const thiStatus = isNon ? 'Miễn thi' : (hasExam ? 'Đã nộp minh chứng' : 'Chưa nộp minh chứng');
+    const time = hasExam ? (sState.examEvidence.timestamp || '') : '';
+    const note = hasExam ? (sState.examEvidence.note || '') : '';
+
+    const row = [
+      idx + 1,
+      '"' + khoa + '"',
+      '"' + lopCode + '"',
+      '"' + s.mssv + '"',
+      '"' + s.hoten + '"',
+      '"' + s.phai + '"',
+      '"' + (s.ngaysinh || '') + '"',
+      '"' + doiTuong + '"',
+      '"' + thiStatus + '"',
+      '"' + time + '"',
+      '"' + note + '"'
+    ];
+    csv += row.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Danh_sach_sinh_vien_va_minh_chung_' + lopCode + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Đã xuất danh sách lớp ' + lopCode + ' thành công!', 'success');
+}
+
+function exportAdminFullCSV() {
+  const classes = (typeof APP_DATA !== 'undefined' && APP_DATA.classes) ? APP_DATA.classes : [];
+  let csv = '﻿';
+  csv += 'STT,Khóa,Mã lớp,MSSV,Họ và tên,Giới tính,Ngày sinh,Đối tượng,Trạng thái thi Nghị quyết,Thời gian nộp minh chứng,Bí thư lớp,Trạng thái Zalo Bí thư\n';
+
+  let stt = 1;
+  classes.forEach(c => {
+    const students = (typeof CLASS_STUDENTS_DATA !== 'undefined' && CLASS_STUDENTS_DATA[c.lop]) ? CLASS_STUDENTS_DATA[c.lop] : [];
+    const state = getClassState(c.lop);
+    const hasZalo = !!state.zaloEvidence ? 'Đã nộp minh chứng Zalo' : 'Chưa nộp Zalo';
+    const bithuName = c.bithu ? c.bithu.hoten : 'Chưa có Bí thư';
+
+    students.forEach(s => {
+      const sState = state.students[s.mssv] || {};
+      const isNon = !!sState.isNonMember;
+      const hasExam = !isNon && !!sState.examEvidence;
+      const doiTuong = isNon ? 'Chưa kết nạp Đoàn (Miễn thi)' : 'Đoàn viên';
+      const thiStatus = isNon ? 'Miễn thi' : (hasExam ? 'Đã nộp minh chứng' : 'Chưa nộp minh chứng');
+      const time = hasExam ? (sState.examEvidence.timestamp || '') : '';
+
+      const row = [
+        stt++,
+        '"' + c.khoa + '"',
+        '"' + c.lop + '"',
+        '"' + s.mssv + '"',
+        '"' + s.hoten + '"',
+        '"' + s.phai + '"',
+        '"' + (s.ngaysinh || '') + '"',
+        '"' + doiTuong + '"',
+        '"' + thiStatus + '"',
+        '"' + time + '"',
+        '"' + bithuName + '"',
+        '"' + hasZalo + '"'
+      ];
+      csv += row.join(',') + '\n';
+    });
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Bao_cao_tong_hop_toan_khoa_56_lop_1372_SV.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Đã xuất báo cáo tổng hợp 1.372 sinh viên toàn khoa thành công!', 'success');
+}
+
+function initAuthAndPortals() {
+  updateNavAuthUI();
+
+  // Modal Login tabs
+  const tabClass = document.getElementById('tab-login-class');
+  const tabAdmin = document.getElementById('tab-login-admin');
+  const formClass = document.getElementById('form-login-class');
+  const formAdmin = document.getElementById('form-login-admin');
+
+  if (tabClass && tabAdmin && formClass && formAdmin) {
+    tabClass.addEventListener('click', () => {
+      tabClass.classList.add('active');
+      tabAdmin.classList.remove('active');
+      formClass.classList.add('active');
+      formClass.style.display = 'block';
+      formAdmin.classList.remove('active');
+      formAdmin.style.display = 'none';
+    });
+
+    tabAdmin.addEventListener('click', () => {
+      tabAdmin.classList.add('active');
+      tabClass.classList.remove('active');
+      formAdmin.classList.add('active');
+      formAdmin.style.display = 'block';
+      formClass.classList.remove('active');
+      formClass.style.display = 'none';
+    });
+  }
+
+  // Populate Login Khoa & Lop
+  const selectKhoa = document.getElementById('login-select-khoa');
+  const selectLop = document.getElementById('login-select-lop');
+
+  if (selectKhoa && selectLop) {
+    selectKhoa.addEventListener('change', () => {
+      const khoa = selectKhoa.value;
+      selectLop.innerHTML = '<option value="">-- Chọn Chi đoàn lớp --</option>';
+      if (!khoa) {
+        selectLop.disabled = true;
+        return;
+      }
+      selectLop.disabled = false;
+      const classesOfKhoa = (typeof APP_DATA !== 'undefined' && APP_DATA.classes) ? APP_DATA.classes.filter(c => c.khoa === khoa) : [];
+      classesOfKhoa.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.lop;
+        opt.textContent = c.lop + ' (' + c.siso + ' SV' + (c.bithu ? ' - Bí thư: ' + c.bithu.hoten : ' - Chưa có Bí thư') + ')';
+        selectLop.appendChild(opt);
+      });
+    });
+  }
+
+  // Submit Form Login Class
+  if (formClass) {
+    formClass.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const khoa = selectKhoa ? selectKhoa.value : '';
+      const lop = selectLop ? selectLop.value : '';
+      const pass = document.getElementById('login-class-pass')?.value || '';
+      if (!khoa || !lop) {
+        showToast('Vui lòng chọn Khóa học và Chi đoàn lớp!', 'error');
+        return;
+      }
+      handleLoginAsClass(khoa, lop, pass);
+    });
+  }
+
+  // Submit Form Login Admin
+  if (formAdmin) {
+    formAdmin.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = document.getElementById('login-admin-user')?.value || '';
+      const pass = document.getElementById('login-admin-pass')?.value || '';
+      if (user.trim().toLowerCase() === 'admin' && (pass === 'admin@cntt2026' || pass === 'admin' || pass === 'cntt2026' || pass === '123456')) {
+        handleLoginAsAdmin();
+      } else {
+        showToast('Mật khẩu quản trị không đúng! (Mặc định: admin@cntt2026)', 'error');
+      }
+    });
+  }
+
+  // Close Login Modal
+  const btnCloseLogin = document.getElementById('btn-close-login-modal');
+  if (btnCloseLogin) btnCloseLogin.addEventListener('click', closeLoginModal);
+  const loginModal = document.getElementById('login-modal');
+  if (loginModal) {
+    loginModal.addEventListener('click', (e) => {
+      if (e.target === loginModal) closeLoginModal();
+    });
+  }
+
+  // Logout buttons
+  const btnClassLogout = document.getElementById('btn-class-logout');
+  if (btnClassLogout) btnClassLogout.addEventListener('click', handleLogout);
+  const btnAdminLogout = document.getElementById('btn-admin-logout');
+  if (btnAdminLogout) btnAdminLogout.addEventListener('click', handleLogout);
+
+  // Student Filter tabs in Class Portal
+  const studentTabs = document.querySelectorAll('.student-tab-btn');
+  studentTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      studentTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentStudentFilter = tab.getAttribute('data-filter') || 'ALL';
+      if (currentAuth && currentAuth.lop) {
+        renderClassPortal(currentAuth.lop);
+      }
+    });
+  });
+
+  // Student Search input
+  const inputStudentSearch = document.getElementById('student-search-input');
+  if (inputStudentSearch) {
+    inputStudentSearch.addEventListener('input', (e) => {
+      currentStudentSearch = e.target.value;
+      if (currentAuth && currentAuth.lop) {
+        const students = (typeof CLASS_STUDENTS_DATA !== 'undefined' && CLASS_STUDENTS_DATA[currentAuth.lop]) ? CLASS_STUDENTS_DATA[currentAuth.lop] : [];
+        const state = getClassState(currentAuth.lop);
+        renderStudentsTable(currentAuth.lop, students, state);
+      }
+    });
+  }
+
+  // Export Class Roster Button
+  const btnExportClassRoster = document.getElementById('btn-export-class-roster');
+  if (btnExportClassRoster) {
+    btnExportClassRoster.addEventListener('click', () => {
+      if (currentAuth && currentAuth.lop) {
+        exportClassRosterCSV(currentAuth.lop);
+      }
+    });
+  }
+
+  // Export Admin Full CSV Button
+  const btnExportAdminFull = document.getElementById('btn-export-admin-full');
+  if (btnExportAdminFull) {
+    btnExportAdminFull.addEventListener('click', () => {
+      exportAdminFullCSV();
+    });
+  }
+
+  // Admin search & filter
+  const inputAdminSearch = document.getElementById('admin-search-class');
+  const selectAdminKhoa = document.getElementById('admin-filter-khoa');
+  if (inputAdminSearch) inputAdminSearch.addEventListener('input', renderAdminPortal);
+  if (selectAdminKhoa) selectAdminKhoa.addEventListener('change', renderAdminPortal);
+
+  // Setup Zalo Dropzone & Modal
+  setupZaloModalControls();
+
+  // Setup Exam Dropzone & Modal
+  setupExamModalControls();
+
+  // Setup Lightbox Modal close
+  const btnCloseLightbox = document.getElementById('btn-close-lightbox');
+  const lightboxModal = document.getElementById('lightbox-modal');
+  if (btnCloseLightbox) btnCloseLightbox.addEventListener('click', () => lightboxModal.classList.remove('active'));
+  if (lightboxModal) {
+    lightboxModal.addEventListener('click', (e) => {
+      if (e.target === lightboxModal) lightboxModal.classList.remove('active');
+    });
+  }
+
+  // Check saved session on load
+  try {
+    const saved = localStorage.getItem('auth_session');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.role === 'admin') {
+        currentAuth = parsed;
+        updateNavAuthUI();
+        const adminSec = document.getElementById('admin-portal-section');
+        if (adminSec) {
+          adminSec.style.display = 'block';
+          renderAdminPortal();
+        }
+      } else if (parsed && parsed.role === 'class') {
+        currentAuth = parsed;
+        updateNavAuthUI();
+        const classSec = document.getElementById('class-portal-section');
+        if (classSec) {
+          classSec.style.display = 'block';
+          renderClassPortal(parsed.lop);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Could not parse auth session:', e);
+  }
+}
+
+function setupZaloModalControls() {
+  const dropzone = document.getElementById('zalo-dropzone');
+  const fileInput = document.getElementById('zalo-file-input');
+  const previewContainer = document.getElementById('zalo-preview-container');
+  const previewImg = document.getElementById('zalo-image-preview');
+  const btnRemove = document.getElementById('btn-remove-zalo-preview');
+  const form = document.getElementById('form-submit-zalo');
+  const btnClose = document.getElementById('btn-close-zalo-modal');
+
+  if (btnClose) btnClose.addEventListener('click', closeZaloModal);
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      showToast('Vui lòng chọn file hình ảnh hợp lệ (JPG, PNG, WebP)!', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      currentZaloImageBase64 = e.target.result;
+      if (previewImg) previewImg.src = currentZaloImageBase64;
+      if (previewContainer) previewContainer.style.display = 'block';
+      if (dropzone) dropzone.style.display = 'none';
+      showToast('Đã nhận diện ảnh minh chứng Zalo!', 'info');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  if (dropzone && fileInput) {
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+    });
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+  }
+
+  if (btnRemove) {
+    btnRemove.addEventListener('click', () => {
+      currentZaloImageBase64 = null;
+      if (previewContainer) previewContainer.style.display = 'none';
+      if (dropzone) dropzone.style.display = 'block';
+      if (fileInput) fileInput.value = '';
+    });
+  }
+
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!currentZaloImageBase64) {
+        showToast('Vui lòng tải lên ảnh chụp màn hình Zalo!', 'error');
+        return;
+      }
+      const lop = (currentAuth && currentAuth.lop) || document.getElementById('modal-zalo-lop-code')?.textContent || '';
+      const hoten = document.getElementById('input-zalo-hoten')?.value.trim() || 'Bí thư';
+      const sdt = document.getElementById('input-zalo-sdt')?.value.trim() || '';
+
+      const state = getClassState(lop);
+      const now = new Date();
+      const timeStr = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN');
+
+      state.zaloEvidence = {
+        imageBase64: currentZaloImageBase64,
+        timestamp: timeStr,
+        submitterName: hoten,
+        phone: sdt
+      };
+      saveClassState(lop, state);
+
+      sendToGoogleAppsScript({
+        action: 'submit_evidence',
+        lop: lop,
+        khoa: (currentAuth && currentAuth.khoa) || ('Khóa ' + lop.substring(0, 2)),
+        hoten: hoten,
+        sdt: sdt,
+        loaiMinhChung: 'Zalo Bí thư Chi đoàn',
+        doiTuong: 'Bí thư Chi đoàn',
+        imageBase64: currentZaloImageBase64,
+        imageType: 'image/jpeg'
+      });
+
+      closeZaloModal();
+      showToast('🎉 Đã nộp thành công minh chứng Zalo Bí thư Chi đoàn ' + lop + '!', 'success');
+      renderClassPortal(lop);
+    });
+  }
+}
+
+function setupExamModalControls() {
+  const dropzone = document.getElementById('exam-dropzone');
+  const fileInput = document.getElementById('exam-file-input');
+  const previewContainer = document.getElementById('exam-preview-container');
+  const previewImg = document.getElementById('exam-image-preview');
+  const btnRemove = document.getElementById('btn-remove-exam-preview');
+  const form = document.getElementById('form-submit-exam');
+  const btnClose = document.getElementById('btn-close-exam-modal');
+
+  if (btnClose) btnClose.addEventListener('click', closeExamModal);
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      showToast('Vui lòng chọn file hình ảnh hợp lệ (JPG, PNG, WebP)!', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      currentExamImageBase64 = e.target.result;
+      if (previewImg) previewImg.src = currentExamImageBase64;
+      if (previewContainer) previewContainer.style.display = 'block';
+      if (dropzone) dropzone.style.display = 'none';
+      showToast('Đã nhận diện ảnh minh chứng thi!', 'info');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  if (dropzone && fileInput) {
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+    });
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+  }
+
+  if (btnRemove) {
+    btnRemove.addEventListener('click', () => {
+      currentExamImageBase64 = null;
+      if (previewContainer) previewContainer.style.display = 'none';
+      if (dropzone) dropzone.style.display = 'block';
+      if (fileInput) fileInput.value = '';
+    });
+  }
+
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!currentExamImageBase64) {
+        showToast('Vui lòng tải lên ảnh chụp màn hình điểm thi trên App!', 'error');
+        return;
+      }
+      if (!currentExamTarget) return;
+
+      const mssv = currentExamTarget.mssv;
+      const lop = currentExamTarget.lop;
+      const hoten = currentExamTarget.hoten;
+      const note = document.getElementById('exam-input-note')?.value.trim() || '';
+
+      const state = getClassState(lop);
+      const now = new Date();
+      const timeStr = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN');
+
+      if (!state.students[mssv]) state.students[mssv] = {};
+      state.students[mssv].isNonMember = false;
+      state.students[mssv].examEvidence = {
+        imageBase64: currentExamImageBase64,
+        timestamp: timeStr,
+        note: note
+      };
+      saveClassState(lop, state);
+
+      sendToGoogleAppsScript({
+        action: 'submit_evidence',
+        lop: lop,
+        khoa: (currentAuth && currentAuth.khoa) || ('Khóa ' + lop.substring(0, 2)),
+        hoten: hoten,
+        mssv: mssv,
+        loaiMinhChung: 'Thi Nghị quyết App TNVN',
+        doiTuong: 'Đoàn viên',
+        imageBase64: currentExamImageBase64,
+        imageType: 'image/jpeg',
+        ghiChu: note
+      });
+
+      closeExamModal();
+      showToast('🎉 Đã lưu minh chứng thi cho sinh viên ' + hoten + ' (' + mssv + ') thành công!', 'success');
+      renderClassPortal(lop);
+    });
+  }
+}

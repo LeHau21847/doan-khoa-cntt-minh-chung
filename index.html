@@ -37,8 +37,13 @@
       </ul>
       
       <div class="nav-actions">
+        <div id="nav-auth-container" class="nav-auth-container">
+          <button class="btn btn-primary btn-sm" id="btn-show-login">
+            🔐 Đăng nhập (Admin / Lớp)
+          </button>
+        </div>
         <button class="btn btn-outline btn-sm" id="btn-open-google-modal" title="Cấu hình Google Drive & Sheets">
-          ⚙️ Google Drive
+          ⚙️ Drive
         </button>
         <a href="https://zalo.me/g/9scl8scbk5rsi3dk83gk" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" id="btn-nav-zalo">
           📲 Vào nhóm Zalo
@@ -123,6 +128,236 @@
       </div>
     </div>
   </header>
+
+  <!-- SECTION: BÀN LÀM VIỆC DÀNH CHO CHI ĐOÀN (TÀI KHOẢN LỚP) -->
+  <section class="section portal-section" id="class-portal-section" style="display: none;">
+    <div class="container">
+      <div class="portal-header-card">
+        <div class="portal-header-left">
+          <div class="portal-badge" id="class-portal-badge">🎓 CHI ĐOÀN LỚP: <span id="portal-class-code">--</span></div>
+          <h2 class="portal-title" id="portal-class-title">Không Gian Quản Lý Chi Đoàn</h2>
+          <p class="portal-desc" id="portal-class-desc">Khóa đào tạo • Sĩ số sinh viên</p>
+        </div>
+        <div class="portal-header-right">
+          <div class="officer-mini-card" id="portal-bithu-card">
+            <span class="officer-role-tag">🎖️ Bí thư Chi đoàn phụ trách:</span>
+            <strong id="portal-bithu-name">Chưa có Bí thư</strong>
+            <span id="portal-bithu-contact">SĐT: -- • MSSV: --</span>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-class-logout">🚪 Đăng xuất Lớp</button>
+        </div>
+      </div>
+
+      <!-- Quick KPI Counters -->
+      <div class="portal-kpi-grid">
+        <div class="portal-kpi-card">
+          <span class="kpi-num" id="kpi-total-students">0</span>
+          <span class="kpi-label">Tổng sinh viên lớp</span>
+        </div>
+        <div class="portal-kpi-card kpi-blue">
+          <span class="kpi-num" id="kpi-doanvien-count">0</span>
+          <span class="kpi-label">Đoàn viên (Phải thi)</span>
+        </div>
+        <div class="portal-kpi-card kpi-orange">
+          <span class="kpi-num" id="kpi-nonmember-count">0</span>
+          <span class="kpi-label">Chưa kết nạp Đoàn (Miễn thi)</span>
+        </div>
+        <div class="portal-kpi-card kpi-green">
+          <span class="kpi-num" id="kpi-exam-submitted-count">0</span>
+          <span class="kpi-label">Đoàn viên đã nộp thi</span>
+        </div>
+        <div class="portal-kpi-card kpi-cyan">
+          <span class="kpi-num" id="kpi-exam-percentage">0%</span>
+          <span class="kpi-label">Tỷ lệ hoàn thành thi</span>
+        </div>
+      </div>
+
+      <!-- MỤC 1: MINH CHỨNG THAM GIA NHÓM ZALO (CHỈ DÀNH RIÊNG CHO BÍ THƯ) -->
+      <div class="portal-panel" id="panel-zalo-bithu">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">
+              <span class="panel-icon">📲</span> 1. Minh Chứng Tham Gia Nhóm Zalo Bí Thư Chi Đoàn
+              <span class="tag tag-warning">CHỈ DÀNH RIÊNG CHO BÍ THƯ LỚP</span>
+            </h3>
+            <p class="panel-sub">Theo quy định của Đoàn Khoa CNTT, mục này CHỈ BÍ THƯ CHI ĐOÀN mới nộp (Mỗi lớp nộp 1 minh chứng duy nhất cho cả lớp).</p>
+          </div>
+          <div id="zalo-status-badge-container">
+            <span class="status-badge badge-pending" id="zalo-status-badge">⏳ Chưa có minh chứng Zalo</span>
+          </div>
+        </div>
+
+        <div class="panel-body zalo-box-body">
+          <div class="zalo-box-info">
+            <p><strong>Yêu cầu:</strong> Bí thư mở ứng dụng Zalo, chụp ảnh màn hình giao diện nhóm <em>"BÍ THƯ CHI ĐOÀN KHOA CNTT"</em> thể hiện rõ tài khoản Zalo của mình đã ở trong nhóm.</p>
+            <div id="zalo-evidence-preview-box" class="zalo-preview-box" style="display: none;">
+              <img id="zalo-preview-img" src="" alt="Ảnh minh chứng Zalo Bí thư">
+              <div class="zalo-preview-meta">
+                <span class="badge badge-success">✓ Đã nộp minh chứng Zalo Bí thư</span>
+                <p id="zalo-preview-time" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;"></p>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                  <button class="btn btn-outline btn-xs" id="btn-view-zalo-full">🔍 Xem ảnh phóng to</button>
+                  <button class="btn btn-outline btn-xs" id="btn-reupload-zalo">🔄 Nộp lại ảnh khác</button>
+                </div>
+              </div>
+            </div>
+            <div id="zalo-upload-prompt-box">
+              <button class="btn btn-zalo btn-md" id="btn-open-zalo-upload">
+                📤 Bí thư nộp ảnh chụp màn hình nhóm Zalo
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MỤC 2: QUẢN LÝ DANH SÁCH SINH VIÊN & MINH CHỨNG THI NGHỊ QUYẾT -->
+      <div class="portal-panel" id="panel-students-exam">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">
+              <span class="panel-icon">📝</span> 2. Quản Lý Danh Sách Sinh Viên & Minh Chứng Thi Nghị Quyết (App TNVN)
+              <span class="tag tag-primary">TẤT CẢ ĐOÀN VIÊN BẮT BUỘC THI</span>
+            </h3>
+            <p class="panel-sub">
+              Bí thư kiểm tra danh sách: Trường hợp nào <strong>chưa kết nạp Đoàn (không phải đoàn viên)</strong> thì tích chọn <em>"Chưa vào Đoàn"</em> để ghi nhận và miễn thi. Tất cả các bạn <strong>Đoàn viên còn lại bắt buộc phải thi</strong> và nộp minh chứng.
+            </p>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-outline btn-sm" id="btn-export-class-roster">
+              📥 Xuất danh sách lớp (Excel/CSV)
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <!-- Filter Toolbar for Students -->
+          <div class="students-filter-toolbar">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="student-search-input" placeholder="Tìm theo tên hoặc MSSV...">
+            </div>
+            <div class="student-tabs">
+              <button class="student-tab-btn active" data-filter="ALL">Tất cả (<span id="tab-cnt-all">0</span>)</button>
+              <button class="student-tab-btn" data-filter="DOAN_VIEN">🎗️ Đoàn viên (<span id="tab-cnt-dv">0</span>)</button>
+              <button class="student-tab-btn" data-filter="NON_MEMBER">⚪ Chưa vào Đoàn (<span id="tab-cnt-non">0</span>)</button>
+              <button class="student-tab-btn" data-filter="EXAM_DONE">✅ Đã nộp thi (<span id="tab-cnt-done">0</span>)</button>
+              <button class="student-tab-btn" data-filter="EXAM_NOT_YET">❌ Chưa nộp thi (<span id="tab-cnt-pending">0</span>)</button>
+            </div>
+          </div>
+
+          <!-- Students Roster Table -->
+          <div class="students-table-wrapper">
+            <table class="students-table" id="students-table">
+              <thead>
+                <tr>
+                  <th style="width: 45px;">STT</th>
+                  <th style="width: 100px;">MSSV</th>
+                  <th>Họ và Tên</th>
+                  <th style="width: 65px;">Phái</th>
+                  <th style="width: 95px;">Ngày sinh</th>
+                  <th style="width: 220px;">Phân loại Đoàn viên</th>
+                  <th style="width: 190px;">Trạng thái Thi Nghị quyết</th>
+                  <th style="width: 140px; text-align: center;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="students-table-body">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: BÀN LÀM VIỆC QUẢN TRỊ VIÊN ĐOÀN KHOA (ADMIN) -->
+  <section class="section portal-section" id="admin-portal-section" style="display: none;">
+    <div class="container">
+      <div class="portal-header-card admin-header-card">
+        <div class="portal-header-left">
+          <div class="portal-badge admin-badge">👑 BAN THƯỜNG VỤ ĐOÀN KHOA CNTT</div>
+          <h2 class="portal-title">Trung Tâm Quản Trị & Theo Dõi Tiến Độ 56 Chi Đoàn</h2>
+          <p class="portal-desc">Giám sát toàn diện tình trạng tham gia nhóm Zalo Bí thư và kết quả thi Nghị quyết của 1.372 sinh viên</p>
+        </div>
+        <div class="portal-header-right">
+          <button class="btn btn-primary btn-sm" id="btn-export-admin-full">
+            📥 Xuất toàn bộ 56 lớp & 1.372 SV (Excel/CSV)
+          </button>
+          <button class="btn btn-outline btn-sm" id="btn-admin-logout">🚪 Đăng xuất Admin</button>
+        </div>
+      </div>
+
+      <!-- Admin KPI Grid -->
+      <div class="portal-kpi-grid">
+        <div class="portal-kpi-card">
+          <span class="kpi-num" id="admin-kpi-classes">56</span>
+          <span class="kpi-label">Tổng số Chi đoàn</span>
+        </div>
+        <div class="portal-kpi-card">
+          <span class="kpi-num" id="admin-kpi-total-students">1.372</span>
+          <span class="kpi-label">Tổng sinh viên toàn khoa</span>
+        </div>
+        <div class="portal-kpi-card kpi-cyan">
+          <span class="kpi-num" id="admin-kpi-zalo-rate">0 / 56</span>
+          <span class="kpi-label">Bí thư đã tham gia Zalo</span>
+        </div>
+        <div class="portal-kpi-card kpi-orange">
+          <span class="kpi-num" id="admin-kpi-nonmember-total">0</span>
+          <span class="kpi-label">Chưa kết nạp Đoàn</span>
+        </div>
+        <div class="portal-kpi-card kpi-green">
+          <span class="kpi-num" id="admin-kpi-exam-rate">0%</span>
+          <span class="kpi-label">Tỷ lệ Đoàn viên toàn khoa đã thi</span>
+        </div>
+      </div>
+
+      <!-- Master 56 Classes Table -->
+      <div class="portal-panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">👥 Danh Sách 56 Chi Đoàn Khoa CNTT</h3>
+            <p class="panel-sub">Nhấp vào nút "👉 Vào quản lý lớp" để xem danh sách sinh viên và duyệt minh chứng của từng lớp</p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input type="text" id="admin-search-class" class="form-control form-control-sm" style="width: 200px;" placeholder="Tìm mã lớp...">
+            <select id="admin-filter-khoa" class="form-control form-control-sm" style="width: 130px;">
+              <option value="ALL">Tất cả Khóa</option>
+              <option value="Khóa 23">Khóa 23</option>
+              <option value="Khóa 24">Khóa 24</option>
+              <option value="Khóa 25">Khóa 25</option>
+              <option value="Khóa 26">Khóa 26</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div class="students-table-wrapper">
+            <table class="students-table" id="admin-classes-table">
+              <thead>
+                <tr>
+                  <th style="width: 45px;">STT</th>
+                  <th style="width: 80px;">Khóa</th>
+                  <th style="width: 100px;">Mã lớp</th>
+                  <th style="width: 65px;">Sĩ số</th>
+                  <th>Bí thư Chi đoàn</th>
+                  <th style="width: 110px;">SĐT Bí thư</th>
+                  <th style="width: 130px;">Zalo Bí thư</th>
+                  <th style="width: 80px;">Đoàn viên</th>
+                  <th style="width: 95px;">Chưa vào Đoàn</th>
+                  <th style="width: 80px;">Đã thi</th>
+                  <th style="width: 90px;">Tỷ lệ thi</th>
+                  <th style="width: 130px; text-align: center;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="admin-classes-table-body">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Section 1: Hướng dẫn & QR Code -->
   <section class="section" id="info-hub">
@@ -637,6 +872,176 @@
     </div>
   </div>
 
+  <!-- MODAL: ĐĂNG NHẬP HỆ THỐNG (ADMIN / CHI ĐOÀN) -->
+  <div class="modal-backdrop" id="login-modal">
+    <div class="modal-dialog" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 id="login-modal-title">🔐 ĐĂNG NHẬP HỆ THỐNG</h3>
+        <button class="modal-close" id="btn-close-login-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Login Role Tabs -->
+        <div class="login-tabs">
+          <button class="login-tab-btn active" id="tab-login-class" type="button" data-role="class">
+            🎓 Chi đoàn (56 Lớp)
+          </button>
+          <button class="login-tab-btn" id="tab-login-admin" type="button" data-role="admin">
+            👑 Admin Đoàn Khoa
+          </button>
+        </div>
+
+        <!-- Form 1: Chi Đoàn Lớp -->
+        <form id="form-login-class" class="login-form-pane active">
+          <div class="form-group">
+            <label for="login-select-khoa" class="form-label">1. Chọn Khóa học <span class="req">*</span></label>
+            <select id="login-select-khoa" class="form-control" required>
+              <option value="">-- Chọn Khóa học --</option>
+              <option value="Khóa 23">Khóa 23 (7 lớp)</option>
+              <option value="Khóa 24">Khóa 24 (13 lớp)</option>
+              <option value="Khóa 25">Khóa 25 (14 lớp)</option>
+              <option value="Khóa 26">Khóa 26 (22 lớp)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="login-select-lop" class="form-label">2. Chọn Chi đoàn lớp của bạn <span class="req">*</span></label>
+            <select id="login-select-lop" class="form-control" required disabled>
+              <option value="">-- Vui lòng chọn Khóa trước --</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="login-class-pass" class="form-label">3. Mật khẩu lớp</label>
+            <input type="password" id="login-class-pass" class="form-control" placeholder="Mã lớp viết thường (ví dụ: 23ct111) hoặc 123456">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+              💡 Gợi ý: Nhập mã lớp viết thường (ví dụ: <code>23ct111</code>) hoặc <code>123456</code> để đăng nhập.
+            </p>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+            🚀 VÀO KHÔNG GIAN CHI ĐOÀN
+          </button>
+        </form>
+
+        <!-- Form 2: Admin Đoàn Khoa -->
+        <form id="form-login-admin" class="login-form-pane" style="display: none;">
+          <div class="form-group">
+            <label for="login-admin-user" class="form-label">Tên tài khoản quản trị</label>
+            <input type="text" id="login-admin-user" class="form-control" value="admin" required>
+          </div>
+
+          <div class="form-group">
+            <label for="login-admin-pass" class="form-label">Mật khẩu quản trị</label>
+            <input type="password" id="login-admin-pass" class="form-control" placeholder="Nhập mật khẩu admin..." required>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+              💡 Mật khẩu mặc định: <code>admin@cntt2026</code>
+            </p>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+            👑 ĐĂNG NHẬP QUẢN TRỊ VIÊN
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BÍ THƯ NỘP MINH CHỨNG ZALO -->
+  <div class="modal-backdrop" id="modal-zalo-evidence">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>📲 Nộp Minh Chứng Nhóm Zalo Bí Thư Chi Đoàn</h3>
+        <button class="modal-close" id="btn-close-zalo-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+          Dành riêng cho Bí thư Chi đoàn lớp <strong id="modal-zalo-lop-code" style="color: #38bdf8;">--</strong>. Chụp ảnh màn hình giao diện nhóm Zalo chứng minh bạn đã tham gia.
+        </p>
+
+        <form id="form-submit-zalo">
+          <div class="form-group">
+            <label class="form-label">Họ và tên Bí thư:</label>
+            <input type="text" id="input-zalo-hoten" class="form-control" placeholder="Họ và tên Bí thư" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Số điện thoại / Zalo:</label>
+            <input type="tel" id="input-zalo-sdt" class="form-control" placeholder="09xxxxxxx" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tải ảnh chụp màn hình Zalo: <span class="req">*</span></label>
+            <div class="dropzone" id="zalo-dropzone" tabindex="0">
+              <div class="dropzone-icon">📷</div>
+              <div class="dropzone-text">
+                <h4>Bấm để chọn ảnh hoặc dán ảnh (Ctrl + V)</h4>
+                <p>Hỗ trợ JPG, PNG từ máy hoặc camera điện thoại</p>
+              </div>
+              <input type="file" id="zalo-file-input" class="file-input" accept="image/*" required>
+            </div>
+            <div class="preview-container" id="zalo-preview-container" style="display: none;">
+              <img id="zalo-image-preview" src="" alt="Xem trước ảnh Zalo">
+              <button type="button" class="btn-remove-preview" id="btn-remove-zalo-preview">✕</button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-zalo" id="btn-send-zalo-evidence" style="width: 100%; margin-top: 14px;">
+            🚀 GỬI MINH CHỨNG ZALO LÊN HỆ THỐNG
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NỘP MINH CHỨNG THI NGHỊ QUYẾT CHO TỪNG SINH VIÊN -->
+  <div class="modal-backdrop" id="modal-exam-evidence">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>📝 Nộp Minh Chứng Thi Nghị Quyết</h3>
+        <button class="modal-close" id="btn-close-exam-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="student-target-badge">
+          <div>
+            <strong id="exam-target-name">Nguyễn Văn A</strong>
+            <p id="exam-target-info" style="font-size: 0.8rem; color: var(--text-muted);">MSSV: 123000xxx • Lớp: 23CT111</p>
+          </div>
+          <span class="badge badge-doanvien">🎗️ Đoàn viên</span>
+        </div>
+
+        <form id="form-submit-exam" style="margin-top: 16px;">
+          <input type="hidden" id="exam-target-mssv">
+          <input type="hidden" id="exam-target-lop">
+
+          <div class="form-group">
+            <label class="form-label">Tải ảnh chụp màn hình kết quả thi trên App TNVN: <span class="req">*</span></label>
+            <div class="dropzone" id="exam-dropzone" tabindex="0">
+              <div class="dropzone-icon">📷</div>
+              <div class="dropzone-text">
+                <h4>Bấm để chọn ảnh hoặc dán ảnh (Ctrl + V)</h4>
+                <p>Ảnh chụp màn hình có điểm thi / chứng nhận trên App</p>
+              </div>
+              <input type="file" id="exam-file-input" class="file-input" accept="image/*" required>
+            </div>
+            <div class="preview-container" id="exam-preview-container" style="display: none;">
+              <img id="exam-image-preview" src="" alt="Xem trước ảnh thi">
+              <button type="button" class="btn-remove-preview" id="btn-remove-exam-preview">✕</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="exam-input-note" class="form-label">Điểm số / Ghi chú (nếu có)</label>
+            <input type="text" id="exam-input-note" class="form-control" placeholder="Ví dụ: Đạt 100/100 điểm, Đạt chứng nhận...">
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="btn-send-exam-evidence" style="width: 100%; margin-top: 14px;">
+            🚀 LƯU & ĐỒNG BỘ MINH CHỨNG THI
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Mobile Bottom Navigation Bar (Hiển thị riêng trên điện thoại) -->
   <div class="mobile-bottom-nav" id="mobile-bottom-nav">
     <a href="#info-hub" class="mob-nav-item">
@@ -661,6 +1066,7 @@
   <div class="toast-container" id="toast-container"></div>
 
   <!-- App Data & Scripts -->
+  <script src="students_data.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>
