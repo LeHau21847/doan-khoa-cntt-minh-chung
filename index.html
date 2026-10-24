@@ -226,7 +226,10 @@
               Bí thư kiểm tra danh sách: Trường hợp nào <strong>chưa kết nạp Đoàn (không phải đoàn viên)</strong> thì tích chọn <em>"Chưa vào Đoàn"</em> để ghi nhận và miễn thi. Tất cả các bạn <strong>Đoàn viên còn lại bắt buộc phải thi</strong> và nộp minh chứng.
             </p>
           </div>
-          <div class="panel-actions">
+          <div class="panel-actions" id="roster-panel-header-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-success btn-sm" id="btn-admin-add-student" style="display: none;">
+              ➕ Thêm sinh viên vào lớp
+            </button>
             <button class="btn btn-outline btn-sm" id="btn-export-class-roster">
               📥 Xuất danh sách lớp (Excel/CSV)
             </button>
@@ -246,6 +249,7 @@
               <button class="student-tab-btn" data-filter="NON_MEMBER">⚪ Chưa vào Đoàn (<span id="tab-cnt-non">0</span>)</button>
               <button class="student-tab-btn" data-filter="EXAM_DONE">✅ Đã nộp thi (<span id="tab-cnt-done">0</span>)</button>
               <button class="student-tab-btn" data-filter="EXAM_NOT_YET">❌ Chưa nộp thi (<span id="tab-cnt-pending">0</span>)</button>
+              <button class="student-tab-btn" id="tab-btn-deleted" data-filter="DELETED" style="display: none; color: #f87171;">🗑️ Đã xóa (<span id="tab-cnt-deleted">0</span>)</button>
             </div>
           </div>
 
@@ -329,9 +333,12 @@
             <h3 class="panel-title">👥 Danh Sách 56 Chi Đoàn Khoa CNTT</h3>
             <p class="panel-sub">Nhấp vào nút "👉 Vào quản lý lớp" để xem danh sách sinh viên và duyệt minh chứng của từng lớp</p>
           </div>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <input type="text" id="admin-search-class" class="form-control form-control-sm" style="width: 200px;" placeholder="Tìm mã lớp...">
-            <select id="admin-filter-khoa" class="form-control form-control-sm" style="width: 130px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <button class="btn btn-success btn-sm" id="btn-admin-add-student-dashboard">
+              ➕ Thêm sinh viên mới
+            </button>
+            <input type="text" id="admin-search-class" class="form-control form-control-sm" style="width: 180px;" placeholder="Tìm mã lớp...">
+            <select id="admin-filter-khoa" class="form-control form-control-sm" style="width: 120px;">
               <option value="ALL">Tất cả Khóa</option>
               <option value="Khóa 23">Khóa 23</option>
               <option value="Khóa 24">Khóa 24</option>
@@ -1083,6 +1090,118 @@
             🚀 LƯU & ĐỒNG BỘ MINH CHỨNG THI
           </button>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADMIN THÊM SINH VIÊN MỚI VÀO LỚP -->
+  <div class="modal-backdrop" id="modal-admin-add-student">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="modal-add-student-title">➕ Thêm Sinh Viên Mới Vào Lớp</h3>
+        <button class="modal-close" id="btn-close-add-student-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-admin-add-student">
+          <div class="form-group">
+            <label for="add-student-lop" class="form-label">Chi đoàn / Lớp tiếp nhận: <span class="req">*</span></label>
+            <select id="add-student-lop" class="form-control" required style="font-size: 0.95rem; font-weight: 600;">
+              <!-- Populated dynamically with 56 classes -->
+            </select>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="add-student-mssv" class="form-label">Mã số sinh viên (MSSV): <span class="req">*</span></label>
+              <input type="text" id="add-student-mssv" class="form-control" placeholder="Ví dụ: 123001234" required>
+            </div>
+            <div class="form-group">
+              <label for="add-student-hoten" class="form-label">Họ và Tên: <span class="req">*</span></label>
+              <input type="text" id="add-student-hoten" class="form-control" placeholder="Ví dụ: Nguyễn Văn An" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="add-student-phai" class="form-label">Giới tính: <span class="req">*</span></label>
+              <select id="add-student-phai" class="form-control" required>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="add-student-ngaysinh" class="form-label">Ngày sinh (dd/mm/yyyy):</label>
+              <input type="text" id="add-student-ngaysinh" class="form-control" placeholder="Ví dụ: 15/08/2005">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phân loại đối tượng ban đầu: <span class="req">*</span></label>
+            <div class="radio-tile-group" style="gap: 10px; display: flex;">
+              <label class="radio-tile active" id="label-role-doanvien" style="flex: 1; padding: 10px 14px; cursor: pointer; border-radius: 8px;">
+                <input type="radio" name="add-student-role" value="DOAN_VIEN" checked style="display: none;">
+                <div style="font-weight: 700; color: #38bdf8;">🎗️ Đoàn viên</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Bắt buộc thi & nộp minh chứng</div>
+              </label>
+              <label class="radio-tile" id="label-role-nonmember" style="flex: 1; padding: 10px 14px; cursor: pointer; border-radius: 8px;">
+                <input type="radio" name="add-student-role" value="NON_MEMBER" style="display: none;">
+                <div style="font-weight: 700; color: #94a3b8;">⚪ Chưa vào Đoàn</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Được miễn thi Nghị quyết</div>
+              </label>
+            </div>
+          </div>
+
+          <div id="add-student-error" style="display: none; padding: 10px 14px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; color: #fca5a5; font-size: 0.82rem; margin-bottom: 14px;"></div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-add-student">Hủy</button>
+            <button type="submit" class="btn btn-success btn-sm" id="btn-submit-add-student">
+              💾 Lưu & Thêm Vào Lớp
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADMIN XÁC NHẬN XÓA SINH VIÊN KHỎI LỚP -->
+  <div class="modal-backdrop" id="modal-admin-delete-student">
+    <div class="modal-dialog" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 style="color: #f87171;">🗑️ Xác Nhận Xóa Sinh Viên Khỏi Lớp</h3>
+        <button class="modal-close" id="btn-close-delete-student-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <div style="font-size: 2.8rem; margin-bottom: 8px;">⚠️</div>
+          <p style="font-size: 0.95rem; color: #fff;">Bạn có chắc chắn muốn xóa sinh viên sau khỏi danh sách chi đoàn <strong id="delete-student-lop-display" style="color: #38bdf8;"></strong>?</p>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-muted); font-size: 0.85rem;">Họ và Tên:</span>
+            <strong id="delete-student-name-display" style="color: #fff;"></strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-muted); font-size: 0.85rem;">MSSV:</span>
+            <code id="delete-student-mssv-display" style="color: #38bdf8;"></code>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted); font-size: 0.85rem;">Trạng thái bài thi:</span>
+            <span id="delete-student-exam-display"></span>
+          </div>
+        </div>
+
+        <div style="font-size: 0.8rem; color: #94a3b8; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 10px 12px; margin-bottom: 18px; line-height: 1.4;">
+          🔒 <strong>Bảo toàn dữ liệu:</strong> Toàn bộ ảnh minh chứng đã nộp của sinh viên này trên Google Drive & Google Sheet vẫn được lưu giữ an toàn, không bao giờ bị mất.
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-delete-student">Hủy</button>
+          <button type="button" class="btn btn-danger btn-sm" id="btn-confirm-delete-student">
+            🗑️ Xác nhận xóa
+          </button>
+        </div>
       </div>
     </div>
   </div>
