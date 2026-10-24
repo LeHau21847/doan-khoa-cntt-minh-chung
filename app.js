@@ -1307,7 +1307,7 @@ function getCustomRosterUpdates() {
   } catch (e) {
     console.error('Lỗi đọc custom_roster_updates:', e);
   }
-  return { added: {}, deleted: {} };
+  return { added: {}, edited: {}, deleted: {} };
 }
 
 function saveCustomRosterUpdates(updates) {
@@ -1340,6 +1340,16 @@ function getClassStudents(lopCode) {
     if (!exists) {
       baseStudents.push({ ...newS, isCustomAdded: true });
     }
+  });
+
+  // 3. Áp dụng thông tin chỉnh sửa (Họ tên, Phái, Ngày sinh, Phân loại) nếu có
+  const editedMap = (updates.edited && updates.edited[lopCode]) || {};
+  baseStudents = baseStudents.map(s => {
+    const cleanM = String(s.mssv).trim();
+    if (editedMap[cleanM]) {
+      return { ...s, ...editedMap[cleanM] };
+    }
+    return s;
   });
 
   return baseStudents;
@@ -1462,6 +1472,89 @@ function adminRestoreStudent(lopCode, mssv) {
     saveCustomRosterUpdates(updates);
   }
   return true;
+}
+
+function adminEditStudent(lopCode, mssv, studentData) {
+  const cleanMssv = String(mssv).trim();
+  const updates = getCustomRosterUpdates();
+  if (!updates.edited) updates.edited = {};
+  if (!updates.edited[lopCode]) updates.edited[lopCode] = {};
+
+  const hoten = String(studentData.hoten).trim();
+  const phai = studentData.phai || 'Nam';
+  const ngaysinh = studentData.ngaysinh || '';
+  const isNonMember = !!studentData.isNonMember;
+
+  if (updates.added && updates.added[lopCode]) {
+    const addedIdx = updates.added[lopCode].findIndex(s => String(s.mssv).trim() === cleanMssv);
+    if (addedIdx >= 0) {
+      updates.added[lopCode][addedIdx] = {
+        ...updates.added[lopCode][addedIdx],
+        hoten, phai, ngaysinh, isNonMember
+      };
+    }
+  }
+
+  updates.edited[lopCode][cleanMssv] = {
+    hoten, phai, ngaysinh, isNonMember
+  };
+
+  saveCustomRosterUpdates(updates);
+
+  // Cập nhật trạng thái đối tượng trong class state
+  const state = getClassState(lopCode);
+  if (!state.students[cleanMssv]) state.students[cleanMssv] = { exams: {} };
+  state.students[cleanMssv].isNonMember = isNonMember;
+  state.students[cleanMssv].hoten = hoten;
+  saveClassState(lopCode, state);
+
+  // Gửi đồng bộ lên Google Apps Script chạy nền
+  sendToGoogleAppsScript({
+    action: 'edit_student',
+    lop: lopCode,
+    mssv: cleanMssv,
+    hoten: hoten,
+    phai: phai,
+    ngaysinh: ngaysinh,
+    isNonMember: isNonMember
+  });
+
+  return updates.edited[lopCode][cleanMssv];
+}
+
+function openEditStudentModal(lop, student, isNonMember) {
+  const modal = document.getElementById('modal-admin-edit-student');
+  if (!modal) return;
+
+  const hiddenLop = document.getElementById('edit-student-lop');
+  const displayLop = document.getElementById('edit-student-lop-display');
+  const inputMssv = document.getElementById('edit-student-mssv');
+  const inputHoten = document.getElementById('edit-student-hoten');
+  const inputPhai = document.getElementById('edit-student-phai');
+  const inputNgaysinh = document.getElementById('edit-student-ngaysinh');
+  const errBox = document.getElementById('edit-student-error');
+
+  if (hiddenLop) hiddenLop.value = lop;
+  if (displayLop) displayLop.value = lop;
+  if (inputMssv) inputMssv.value = student.mssv || '';
+  if (inputHoten) inputHoten.value = student.hoten || '';
+  if (inputPhai) inputPhai.value = student.phai || 'Nam';
+  if (inputNgaysinh) inputNgaysinh.value = student.ngaysinh || '';
+  if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+
+  const radios = document.querySelectorAll('input[name="edit-student-role"]');
+  radios.forEach(r => {
+    r.checked = (r.value === 'NON_MEMBER') ? isNonMember : !isNonMember;
+  });
+  document.getElementById('label-edit-role-doanvien')?.classList.toggle('active', !isNonMember);
+  document.getElementById('label-edit-role-nonmember')?.classList.toggle('active', isNonMember);
+
+  modal.classList.add('active');
+}
+
+function closeEditStudentModal() {
+  const modal = document.getElementById('modal-admin-edit-student');
+  if (modal) modal.classList.remove('active');
 }
 
 function openAddStudentModal(preSelectedLop) {
@@ -1783,6 +1876,7 @@ async function syncDataFromCloud(showNotifications = true) {
       if (!rosterUpdates.deleted) rosterUpdates.deleted = {};
 
       const cloudAdded = data.customStudents.added || [];
+      const cloudEdited = data.customStudents.edited || [];
       const cloudDeleted = data.customStudents.deleted || [];
 
       cloudAdded.forEach(cs => {
@@ -1796,6 +1890,20 @@ async function syncDataFromCloud(showNotifications = true) {
         if (!rosterUpdates.added[cLop].some(s => String(s.mssv).trim() === cMssv)) {
           rosterUpdates.added[cLop].push(cs);
         }
+      });
+
+      cloudEdited.forEach(ce => {
+        const cLop = ce.lop;
+        const cMssv = ce.mssv;
+        if (!cLop || !cMssv) return;
+        if (!rosterUpdates.edited) rosterUpdates.edited = {};
+        if (!rosterUpdates.edited[cLop]) rosterUpdates.edited[cLop] = {};
+        rosterUpdates.edited[cLop][cMssv] = {
+          hoten: ce.hoten,
+          phai: ce.phai,
+          ngaysinh: ce.ngaysinh,
+          isNonMember: ce.isNonMember
+        };
       });
 
       cloudDeleted.forEach(cd => {
@@ -2426,8 +2534,9 @@ function renderStudentsTable(lopCode, students, state) {
       html += '<button class="btn btn-primary btn-xs btn-open-student-modal" data-mssv="' + s.mssv + '" data-name="' + s.hoten + '">📤 Nộp thi</button>';
     }
 
-    // Nút XÓA chỉ hiển thị khi Admin đang quản lý!
+    // Nút SỬA & XÓA chỉ hiển thị khi Admin đang quản lý!
     if (currentAuth && (currentAuth.role === 'admin' || viewingAsAdmin)) {
+      html += '<button class="btn btn-outline btn-xs btn-admin-edit-student" data-mssv="' + s.mssv + '" data-lop="' + lopCode + '" title="Sửa thông tin sinh viên ' + s.hoten + '">✏️ Sửa</button>';
       html += '<button class="btn btn-danger btn-xs btn-admin-delete-student" data-mssv="' + s.mssv + '" data-name="' + s.hoten + '" data-lop="' + lopCode + '" data-count="' + count + '" title="Xóa sinh viên khỏi lớp ' + lopCode + '">🗑️ Xóa</button>';
     }
     html += '</div>';
@@ -2436,6 +2545,19 @@ function renderStudentsTable(lopCode, students, state) {
   });
 
   tbody.innerHTML = html;
+
+  // Attach edit student buttons
+  tbody.querySelectorAll('.btn-admin-edit-student').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mssv = btn.getAttribute('data-mssv');
+      const lop = btn.getAttribute('data-lop') || lopCode;
+      const currentList = getClassStudents(lop);
+      const student = currentList.find(s => String(s.mssv).trim() === String(mssv).trim());
+      const sState = state.students[mssv] || {};
+      const isNon = (student && student.isNonMember !== undefined) ? student.isNonMember : !!sState.isNonMember;
+      openEditStudentModal(lop, student || { mssv, hoten: '' }, isNon);
+    });
+  });
 
   // Attach delete student buttons
   tbody.querySelectorAll('.btn-admin-delete-student').forEach(btn => {
@@ -3220,6 +3342,70 @@ function initAuthAndPortals() {
         renderAdminPortal();
       } catch (err) {
         showToast('Lỗi khi xóa sinh viên: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // Setup Admin Edit Student Modal Controls
+  const btnCloseEditStudent = document.getElementById('btn-close-edit-student-modal');
+  const btnCancelEditStudent = document.getElementById('btn-cancel-edit-student');
+  const modalEditStudent = document.getElementById('modal-admin-edit-student');
+  const formEditStudent = document.getElementById('form-admin-edit-student');
+
+  if (btnCloseEditStudent) btnCloseEditStudent.addEventListener('click', closeEditStudentModal);
+  if (btnCancelEditStudent) btnCancelEditStudent.addEventListener('click', closeEditStudentModal);
+  if (modalEditStudent) {
+    modalEditStudent.addEventListener('click', (e) => {
+      if (e.target === modalEditStudent) closeEditStudentModal();
+    });
+  }
+
+  const editStudentRadios = document.querySelectorAll('input[name="edit-student-role"]');
+  editStudentRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.getElementById('label-edit-role-doanvien')?.classList.toggle('active', radio.value === 'DOAN_VIEN');
+      document.getElementById('label-edit-role-nonmember')?.classList.toggle('active', radio.value === 'NON_MEMBER');
+    });
+  });
+
+  if (formEditStudent) {
+    formEditStudent.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const inputLop = document.getElementById('edit-student-lop');
+      const inputMssv = document.getElementById('edit-student-mssv');
+      const inputHoten = document.getElementById('edit-student-hoten');
+      const inputPhai = document.getElementById('edit-student-phai');
+      const inputNgaysinh = document.getElementById('edit-student-ngaysinh');
+      const errBox = document.getElementById('edit-student-error');
+
+      const lop = inputLop ? inputLop.value : '';
+      const mssv = inputMssv ? inputMssv.value.trim() : '';
+      const hoten = inputHoten ? inputHoten.value.trim() : '';
+      const phai = inputPhai ? inputPhai.value : 'Nam';
+      const ngaysinh = inputNgaysinh ? inputNgaysinh.value.trim() : '';
+      const roleRadio = document.querySelector('input[name="edit-student-role"]:checked');
+      const isNonMember = roleRadio ? roleRadio.value === 'NON_MEMBER' : false;
+
+      if (!hoten) {
+        if (errBox) { errBox.style.display = 'block'; errBox.textContent = 'Vui lòng nhập Họ và Tên sinh viên!'; }
+        return;
+      }
+
+      try {
+        adminEditStudent(lop, mssv, { hoten, phai, ngaysinh, isNonMember });
+        closeEditStudentModal();
+        showToast(`Đã cập nhật thông tin sinh viên ${hoten} (${mssv}) thành công!`, 'success');
+
+        const activeLop = getCurrentActiveLop();
+        if (activeLop === lop) {
+          renderClassPortal(lop);
+        }
+        renderAdminPortal();
+      } catch (err) {
+        if (errBox) {
+          errBox.style.display = 'block';
+          errBox.textContent = 'Lỗi: ' + err.message;
+        }
       }
     });
   }

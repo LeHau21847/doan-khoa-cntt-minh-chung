@@ -1164,6 +1164,75 @@
     </div>
   </div>
 
+  <!-- MODAL: ADMIN CHỈNH SỬA THÔNG TIN SINH VIÊN -->
+  <div class="modal-backdrop" id="modal-admin-edit-student">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="modal-edit-student-title">✏️ Chỉnh Sửa Thông Tin Sinh Viên</h3>
+        <button class="modal-close" id="btn-close-edit-student-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-admin-edit-student">
+          <input type="hidden" id="edit-student-lop">
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label class="form-label">Chi đoàn / Lớp:</label>
+              <input type="text" id="edit-student-lop-display" class="form-control" disabled style="background: rgba(15, 23, 42, 0.6); font-weight: 700; color: #38bdf8;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mã số sinh viên (MSSV):</label>
+              <input type="text" id="edit-student-mssv" class="form-control" readonly style="background: rgba(15, 23, 42, 0.6); font-weight: 700; color: #cbd5e1;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-student-hoten" class="form-label">Họ và Tên: <span class="req">*</span></label>
+            <input type="text" id="edit-student-hoten" class="form-control" placeholder="Ví dụ: Nguyễn Văn An" required>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="edit-student-phai" class="form-label">Giới tính: <span class="req">*</span></label>
+              <select id="edit-student-phai" class="form-control" required>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-student-ngaysinh" class="form-label">Ngày sinh (dd/mm/yyyy):</label>
+              <input type="text" id="edit-student-ngaysinh" class="form-control" placeholder="Ví dụ: 15/08/2005">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phân loại đối tượng: <span class="req">*</span></label>
+            <div class="radio-tile-group" style="gap: 10px; display: flex;">
+              <label class="radio-tile" id="label-edit-role-doanvien" style="flex: 1; padding: 10px 14px; cursor: pointer; border-radius: 8px;">
+                <input type="radio" name="edit-student-role" value="DOAN_VIEN" style="display: none;">
+                <div style="font-weight: 700; color: #38bdf8;">🎗️ Đoàn viên</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Bắt buộc thi & nộp minh chứng</div>
+              </label>
+              <label class="radio-tile" id="label-edit-role-nonmember" style="flex: 1; padding: 10px 14px; cursor: pointer; border-radius: 8px;">
+                <input type="radio" name="edit-student-role" value="NON_MEMBER" style="display: none;">
+                <div style="font-weight: 700; color: #94a3b8;">⚪ Chưa vào Đoàn</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Được miễn thi Nghị quyết</div>
+              </label>
+            </div>
+          </div>
+
+          <div id="edit-student-error" style="display: none; padding: 10px 14px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; color: #fca5a5; font-size: 0.82rem; margin-bottom: 14px;"></div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-edit-student">Hủy</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-edit-student">
+              💾 Lưu Thay Đổi
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: ADMIN XÁC NHẬN XÓA SINH VIÊN KHỎI LỚP -->
   <div class="modal-backdrop" id="modal-admin-delete-student">
     <div class="modal-dialog" style="max-width: 480px;">

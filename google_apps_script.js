@@ -161,8 +161,8 @@ function doGet(e) {
       }
     }
 
-    // 3. Đọc danh sách Sinh viên Admin đã thêm mới hoặc xóa (nếu có sheet QuanLy_SinhVien)
-    var customStudents = { added: [], deleted: [] };
+    // 3. Đọc danh sách Sinh viên Admin đã thêm mới, sửa hoặc xóa (nếu có sheet QuanLy_SinhVien)
+    var customStudents = { added: [], edited: [], deleted: [] };
     var sheetQL = ss.getSheetByName("QuanLy_SinhVien");
     if (sheetQL && sheetQL.getLastRow() > 1) {
       var qlValues = sheetQL.getRange(2, 1, sheetQL.getLastRow() - 1, 8).getValues();
@@ -179,6 +179,15 @@ function doGet(e) {
         if (qlLop && qlMssv) {
           if (qlAction === "THEM_MOI" || qlAction === "ADD") {
             customStudents.added.push({
+              lop: qlLop,
+              mssv: qlMssv,
+              hoten: qlHoten,
+              phai: qlPhai,
+              ngaysinh: qlNgaysinh,
+              isNonMember: (qlDoiTuong.toLowerCase().indexOf("chưa") >= 0)
+            });
+          } else if (qlAction === "CHINH_SUA" || qlAction === "EDIT") {
+            customStudents.edited.push({
               lop: qlLop,
               mssv: qlMssv,
               hoten: qlHoten,
@@ -291,7 +300,31 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // TRƯỜNG HỢP 1C: Admin xóa sinh viên khỏi lớp
+    // TRƯỜNG HỢP 1C: Admin sửa thông tin sinh viên trong lớp
+    if (data.action === "edit_student") {
+      var sheetQL = ss.getSheetByName("QuanLy_SinhVien");
+      if (!sheetQL) {
+        sheetQL = ss.insertSheet("QuanLy_SinhVien");
+        sheetQL.appendRow(["Thời gian", "Mã lớp", "MSSV", "Họ và tên", "Phái", "Ngày sinh", "Đối tượng", "Hành động"]);
+        sheetQL.getRange("A1:H1").setBackground("#10b981").setFontColor("#ffffff").setFontWeight("bold");
+        sheetQL.setFrozenRows(1);
+      }
+      var sLop = (data.lop || "").trim();
+      var sMssv = (data.mssv || "").trim();
+      var sHoten = (data.hoten || "").trim();
+      var sPhai = (data.phai || "Nam").trim();
+      var sNgaysinh = (data.ngaysinh || "").trim();
+      var sDoiTuong = data.isNonMember ? "Chưa kết nạp Đoàn" : "Đoàn viên";
+
+      sheetQL.appendRow([nowFormatted, sLop, sMssv, sHoten, sPhai, sNgaysinh, sDoiTuong, "CHINH_SUA"]);
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Đã cập nhật thông tin sinh viên " + sHoten + " (" + sMssv + ") trong lớp " + sLop + " trên Google Sheet!"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // TRƯỜNG HỢP 1D: Admin xóa sinh viên khỏi lớp
     if (data.action === "delete_student") {
       var sheetQL = ss.getSheetByName("QuanLy_SinhVien");
       if (!sheetQL) {
